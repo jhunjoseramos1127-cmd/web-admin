@@ -1,0 +1,37 @@
+{
+  "name": "web-admin",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently --kill-others --names backend,admin \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "cd ../backend && php artisan serve --host=127.0.0.1 --port=8000",
+    "dev:frontend": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.20.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "lucide-react": "^1.48.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.6.1",
+    "concurrently": "^9.2.1",
+    "oxlint": "^1.81.0",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0"
+  }
+}
