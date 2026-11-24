@@ -33,6 +33,11 @@ function getUserErrorMessage(error) {
     : 'We could not complete that request. Check the information and try again.'
 }
 
+function isLoginRequest(error) {
+  const path = error.config?.url?.split('?')[0]
+  return path === '/api/login' || path === '/api/auth/login'
+}
+
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('admin_token')
   if (token) {
@@ -44,7 +49,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const isLogin = isLoginRequest(err)
+    if (err.response?.status === 401 && !isLogin) {
       sessionStorage.removeItem('admin_token')
       sessionStorage.removeItem('admin_user')
       localStorage.removeItem('admin_token')
@@ -53,7 +59,9 @@ api.interceptors.response.use(
         window.location.replace('/login')
       }
     }
-    const message = getUserErrorMessage(err)
+    const message = err.response?.status === 401 && isLogin
+      ? err.response.data?.message || 'Invalid email or password. Please try again.'
+      : getUserErrorMessage(err)
     err.userMessage = message
     err.message = message
     if (err.response) {
