@@ -27,7 +27,6 @@ const formatCountdown = (seconds) => {
 
 const lockoutMessage = 'Too many unsuccessful login attempts. Please wait before trying again.'
 
-/** Existing admin login form with responsive FreshSpin styling and server-driven lockout feedback. */
 export default function LoginForm() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -194,11 +193,11 @@ export default function LoginForm() {
   }
 
   const notificationStyle = {
-    info: 'border-brand-soft bg-brand-tint text-navy',
+    info: 'border-[#BFEAF0] bg-[#E0F7FA] text-[#0A4D68]',
     warning: 'border-warning/30 bg-warning-tint text-navy',
     error: 'border-danger/25 bg-danger-tint text-danger',
     success: 'border-success/25 bg-success-bg text-success',
-  }[notification.type] || 'border-brand-soft bg-brand-tint text-navy'
+  }[notification.type] || 'border-[#BFEAF0] bg-[#E0F7FA] text-[#0A4D68]'
   const NotificationIcon = {
     info: Info,
     warning: LockKeyhole,
@@ -206,96 +205,113 @@ export default function LoginForm() {
     success: CheckCircle2,
   }[notification.type] || Info
   return (
-      <div className="w-full max-w-[500px] rounded-[24px] border border-line bg-white p-5 shadow-pop sm:p-7 lg:p-8">
-        <div className="mb-3 flex justify-end">
-          <span className="text-[11px] font-medium tracking-wide text-ink-secondary">Authorized personnel only</span>
-        </div>
+    <div className="w-full max-w-[460px] py-6 sm:py-8">
+      <div className="mb-6 flex justify-end">
+        <span className="text-[11px] font-medium tracking-wide text-slate-500">
+          Authorized personnel only
+        </span>
+      </div>
 
-        <div className="mb-5 flex flex-col items-center text-center">
-          <FreshSpinLogo size={58} />
-          <div className="mt-2"><FreshSpinWordmark compact /></div>
+      <div className="mb-5 flex flex-col items-center text-center">
+        <span className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-white p-2 shadow-[0_10px_28px_rgba(8,131,149,0.18)] ring-1 ring-[#E2E8F0]">
+          <FreshSpinLogo size={72} />
+        </span>
+        <div className="mt-3">
+          <FreshSpinWordmark compact tone="brand" />
         </div>
+      </div>
 
-        <div className="mb-5 text-center">
-          <h2 className="text-[26px] font-bold leading-tight tracking-tight text-navy">Welcome Back, Admin!</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-ink-secondary">
-            Log in to manage FreshSpin Laundry operations.
-          </p>
-        </div>
+      <div className="mb-5 text-center">
+        <h2 className="text-[26px] font-bold leading-tight tracking-tight text-[#0A4D68]">
+          Welcome Back, Admin!
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Log in to manage FreshSpin Laundry operations.
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off" noValidate>
+        <LoginInput
+          id="admin-email"
+          label="Email Address"
+          type="email"
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value)
+            setFieldErrors((current) => ({ ...current, email: undefined }))
+            if (notification.type === 'error') notify(RESET_INFO, 'info')
+          }}
+          placeholder="admin@freshspin.test"
+          icon={Mail}
+          error={fieldErrors.email}
+          disabled={submitting || isLocked}
+          autoComplete="off"
+        />
+        <div>
           <LoginInput
-            id="admin-email"
-            label="Email Address"
-            type="email"
-            value={email}
+            id="admin-password"
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
             onChange={(event) => {
-              setEmail(event.target.value)
-              setFieldErrors((current) => ({ ...current, email: undefined }))
+              setPassword(event.target.value)
+              setFieldErrors((current) => ({ ...current, password: undefined }))
               if (notification.type === 'error') notify(RESET_INFO, 'info')
             }}
-            placeholder="admin@freshspin.test"
-            icon={Mail}
-            error={fieldErrors.email}
+            onKeyUp={(event) => setCapsLockOn(event.getModifierState('CapsLock'))}
+            onBlur={() => setCapsLockOn(false)}
+            placeholder="Enter your password"
+            icon={Lock}
+            error={fieldErrors.password}
             disabled={submitting || isLocked}
-            autoComplete="off"
+            autoComplete="new-password"
+            showToggle
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((value) => !value)}
           />
-          <div>
-            <LoginInput
-              id="admin-password"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value)
-                setFieldErrors((current) => ({ ...current, password: undefined }))
-                if (notification.type === 'error') notify(RESET_INFO, 'info')
-              }}
-              onKeyUp={(event) => setCapsLockOn(event.getModifierState('CapsLock'))}
-              onBlur={() => setCapsLockOn(false)}
-              placeholder="Enter your password"
-              icon={Lock}
-              error={fieldErrors.password}
+          {capsLockOn && !isLocked && (
+            <p role="status" className="mt-1.5 text-xs font-medium text-amber-700">
+              Caps Lock is on.
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-0.5">
+          <label htmlFor="remember-me" className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-[#0A4D68]">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
               disabled={submitting || isLocked}
-              autoComplete="new-password"
-              showToggle
-              showPassword={showPassword}
-              onTogglePassword={() => setShowPassword((value) => !value)}
-              inputClassName="bg-brand-tint/55"
+              className="h-4 w-4 rounded accent-[#088395]"
             />
-            {capsLockOn && !isLocked && (
-              <p role="status" className="mt-1.5 text-xs font-medium text-warning">Caps Lock is on.</p>
+            Remember me
+          </label>
+          <button
+            type="button"
+            onClick={() => navigate('/forgot-password', { state: { email: email.trim() } })}
+            className="text-[13px] font-semibold text-[#0A4D68] underline-offset-4 transition hover:text-[#088395] hover:underline"
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        <div className="flex items-start gap-2.5 rounded-[14px] border border-[#BFEAF0] bg-[#E0F7FA] px-4 py-3.5 text-[12px] leading-relaxed text-[#0A4D68]">
+          <Info size={17} className="mt-0.5 shrink-0 text-[#0A4D68]" />
+          <span>{RESET_INFO}</span>
+        </div>
+
+        {(notification.message !== RESET_INFO || isLocked) && (
+          <div
+            role={notification.type === 'error' || notification.type === 'warning' ? 'alert' : 'status'}
+            className={`flex min-h-11 items-start gap-2.5 rounded-[14px] border px-4 py-3 text-[12px] leading-relaxed ${notificationStyle}`}
+          >
+            {submitting ? (
+              <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin" />
+            ) : (
+              <NotificationIcon size={16} className="mt-0.5 shrink-0" />
             )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-            <label htmlFor="remember-me" className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-navy">
-              <input
-                id="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(event) => setRememberMe(event.target.checked)}
-                disabled={submitting || isLocked}
-                className="h-4 w-4 rounded accent-navy"
-              />
-              Remember me
-            </label>
-            <button
-              type="button"
-              onClick={() => navigate('/forgot-password', { state: { email: email.trim() } })}
-              className="text-[13px] font-semibold text-navy underline-offset-4 hover:text-navy-hover hover:underline"
-            >
-              Forgot password?
-            </button>
-          </div>
-
-          <div className="flex items-start gap-2.5 rounded-xl border border-brand-soft bg-brand-tint px-3.5 py-3 text-[12px] leading-relaxed text-navy">
-            <Info size={16} className="mt-0.5 shrink-0" />
-            <span>{RESET_INFO}</span>
-          </div>
-
-          {(notification.message !== RESET_INFO || isLocked) && <div role={notification.type === 'error' || notification.type === 'warning' ? 'alert' : 'status'} className={`flex min-h-11 items-start gap-2.5 rounded-xl border px-3.5 py-3 text-[12px] leading-relaxed ${notificationStyle}`}>
-            {submitting ? <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin" /> : <NotificationIcon size={16} className="mt-0.5 shrink-0" />}
             <div className="min-w-0 flex-1">
               {isLocked && <span className="mb-0.5 block font-bold">Account Temporarily Locked</span>}
               <span>{notification.message}</span>
@@ -305,25 +321,26 @@ export default function LoginForm() {
                 </span>
               )}
             </div>
-          </div>}
+          </div>
+        )}
 
-          <button
-            id="admin-login-btn"
-            type="submit"
-            disabled={submitting || isLocked || checkingLockout}
-            className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 text-[15px] font-bold text-white shadow-card transition-all duration-150 hover:bg-navy-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Authenticating...</>
-            ) : (
-              <>Log In <ArrowRight className="h-4 w-4" /></>
-            )}
-          </button>
-        </form>
+        <button
+          id="admin-login-btn"
+          type="submit"
+          disabled={submitting || isLocked || checkingLockout}
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0A4D68] to-[#088395] px-4 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(8,131,149,0.22)] transition-all duration-200 hover:from-[#083F56] hover:to-[#077584] hover:shadow-[0_12px_28px_rgba(8,131,149,0.3)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Authenticating...</>
+          ) : (
+            <>Log In <ArrowRight className="h-4 w-4" /></>
+          )}
+        </button>
+      </form>
 
-        <div className="mt-5 text-center text-[12px] font-medium text-ink-secondary">
-          Laundry made easy. <span aria-label="blue heart" className="text-brand-light">&#x1F499;</span>
-        </div>
+      <div className="mt-4 text-center text-[12px] font-medium text-slate-500">
+        Laundry made easy.
       </div>
+    </div>
   )
 }

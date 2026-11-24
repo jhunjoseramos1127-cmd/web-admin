@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, KeyRound, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import api from '../../api/client'
 import FreshSpinLogo, { FreshSpinWordmark } from './FreshSpinLogo'
-import LoginBranding from './LoginBranding'
 
 const passwordChecks = (value) => ({
   length: value.length >= 10,
@@ -152,128 +151,126 @@ export default function PasswordRecoveryPage() {
   }[step]
 
   return (
-    <main className="auth-screen grid min-h-[100dvh] w-full bg-white md:min-h-[560px] md:h-[100dvh] md:grid-cols-[42fr_58fr] lg:grid-cols-[58fr_42fr]">
-      <LoginBranding />
-      <section className="auth-login-panel relative flex min-h-[100dvh] items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-8 sm:px-8 lg:min-h-0 lg:px-10">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          <span className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-soft/60" />
-          <span className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-brand-tint" />
+    <div className="w-full max-w-[460px] py-4 sm:py-8">
+      <button
+        type="button"
+        onClick={() => navigate('/login')}
+        className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-[#0A4D68] transition hover:text-[#088395] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#088395]/40"
+      >
+        <ArrowLeft size={17} /> Back to login
+      </button>
+
+      <div className="mb-7 flex flex-col items-center text-center">
+        <span className="flex h-[84px] w-[84px] items-center justify-center rounded-full bg-white p-2 shadow-[0_10px_26px_rgba(8,131,149,0.18)] ring-1 ring-[#E2E8F0]">
+          <FreshSpinLogo size={68} />
+        </span>
+        <div className="mt-3">
+          <FreshSpinWordmark compact tone="brand" />
         </div>
-        <div className="relative z-10 w-full max-w-[500px] rounded-[24px] border border-line bg-white p-6 shadow-pop sm:p-9">
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-ink-secondary hover:text-navy"
-          >
-            <ArrowLeft size={16} /> Back to login
+      </div>
+
+      <div className="mb-6 text-center">
+        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E0F7FA] text-[#088395] ring-1 ring-[#BFEAF0]">
+          {step === 'success' ? <CheckCircle2 size={22} /> : step === 'otp' ? <Mail size={21} /> : step === 'password' ? <KeyRound size={21} /> : <ShieldCheck size={22} />}
+        </span>
+        <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[#0A4D68]">{heading}</h1>
+        <p className="mx-auto mt-2 max-w-[390px] text-sm leading-relaxed text-slate-600">
+          {step === 'email' && 'Enter your registered admin email and we will send a verification code.'}
+          {step === 'otp' && <>Enter the six-digit code sent to <span className="font-semibold text-[#0A4D68]">{email}</span>.</>}
+          {step === 'password' && 'Your email is verified. Choose a strong new password for your account.'}
+          {step === 'success' && 'Your password has been changed. You can now sign in with your new password.'}
+        </p>
+      </div>
+
+      {notice && <p role="status" className="mb-4 rounded-[14px] border border-[#BFEAF0] bg-[#E0F7FA] px-4 py-3 text-sm leading-relaxed text-[#0A4D68]">{notice}</p>}
+      {error && <p role="alert" className="mb-4 rounded-[14px] border border-danger/25 bg-danger-tint px-4 py-3 text-sm leading-relaxed text-danger">{error}</p>}
+
+      {step === 'email' && (
+        <form onSubmit={requestCode} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A4D68]" htmlFor="recovery-email">Registered email address</label>
+            <div className="relative">
+              <Mail size={18} aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#088395]" />
+              <input
+                id="recovery-email"
+                type="email"
+                autoComplete="email"
+                required
+                maxLength={254}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="name@example.com"
+                className="w-full rounded-[14px] border border-transparent bg-[#F1F5F9] py-3.5 pl-11 pr-4 text-sm text-[#0A4D68] placeholder:text-slate-500 transition focus:border-[#088395] focus:outline-none focus:ring-2 focus:ring-[#088395]/15"
+              />
+            </div>
+          </div>
+          <button disabled={busy} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0A4D68] to-[#088395] px-4 text-sm font-bold text-white shadow-[0_10px_24px_rgba(8,131,149,0.22)] transition-all duration-200 hover:from-[#083F56] hover:to-[#077584] hover:shadow-[0_12px_28px_rgba(8,131,149,0.3)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60">
+            {busy ? <><Loader2 size={17} className="animate-spin" /> Sending code...</> : <>Send OTP <ArrowRight size={17} /></>}
           </button>
+        </form>
+      )}
 
-          <div className="mb-6 flex flex-col items-center text-center">
-            <FreshSpinLogo size={54} />
-            <div className="mt-2"><FreshSpinWordmark compact /></div>
+      {step === 'otp' && (
+        <form onSubmit={verifyCode} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A4D68]" htmlFor="recovery-code">Six-digit verification code</label>
+            <input
+              id="recovery-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="w-full rounded-[14px] border border-transparent bg-[#F1F5F9] px-4 py-4 text-center font-mono text-2xl font-bold tracking-[0.55em] text-[#0A4D68] placeholder:text-slate-400 transition focus:border-[#088395] focus:outline-none focus:ring-2 focus:ring-[#088395]/15"
+            />
+            <div className="mt-2 flex justify-between gap-2 text-xs text-slate-600">
+              <span>{expiresIn > 0 ? `Code expires in ${formatTime(expiresIn)}` : 'This code has expired.'}</span>
+              <button type="button" onClick={() => { setStep('email'); setError(''); setNotice('') }} className="font-semibold text-[#0A4D68] underline underline-offset-4 transition hover:text-[#088395]">Change email</button>
+            </div>
           </div>
+          <button disabled={busy || expiresIn === 0} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0A4D68] to-[#088395] px-4 text-sm font-bold text-white shadow-[0_10px_24px_rgba(8,131,149,0.22)] transition-all duration-200 hover:from-[#083F56] hover:to-[#077584] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60">
+            {busy ? <><Loader2 size={17} className="animate-spin" /> Verifying...</> : <>Verify OTP <ArrowRight size={17} /></>}
+          </button>
+          <button type="button" disabled={busy || resendIn > 0} onClick={resendCode} className="w-full text-sm font-semibold text-[#0A4D68] transition hover:text-[#088395] disabled:cursor-not-allowed disabled:text-slate-400">
+            {resendIn > 0 ? `Resend code in ${formatTime(resendIn)}` : 'Resend OTP'}
+          </button>
+        </form>
+      )}
 
-          <div className="mb-6 text-center">
-            <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-navy">
-              {step === 'success' ? <CheckCircle2 size={22} /> : step === 'otp' ? <Mail size={21} /> : step === 'password' ? <KeyRound size={21} /> : <ShieldCheck size={21} />}
-            </span>
-            <h1 className="text-2xl font-extrabold text-navy">{heading}</h1>
-            <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
-              {step === 'email' && 'Enter your registered admin email and we will send a verification code.'}
-              {step === 'otp' && <>Enter the six-digit code sent to <span className="font-semibold text-navy">{email}</span>.</>}
-              {step === 'password' && 'Your email is verified. Choose a strong new password for your account.'}
-              {step === 'success' && 'Your password has been changed. You can now sign in with your new password.'}
-            </p>
+      {step === 'password' && (
+        <form onSubmit={updatePassword} className="space-y-4">
+          <div>
+            <label htmlFor="new-password" className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A4D68]">New password</label>
+            <div className="relative">
+              <input id="new-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-[14px] border border-transparent bg-[#F1F5F9] px-4 py-3.5 pr-20 text-sm text-[#0A4D68] transition focus:border-[#088395] focus:outline-none focus:ring-2 focus:ring-[#088395]/15" />
+              <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-[#0A4D68] transition hover:bg-[#E0F7FA]">{showPassword ? 'Hide' : 'Show'}</button>
+            </div>
+            <div className="mt-2" aria-label={`Password strength: ${strength} of 5`}>
+              <div className="flex gap-1">{Array.from({ length: 5 }, (_, index) => <span key={index} className={`h-1.5 flex-1 rounded-full ${index < strength ? (strength < 3 ? 'bg-danger' : strength < 5 ? 'bg-warning' : 'bg-success') : 'bg-slate-200'}`} />)}</div>
+              <p className="mt-1 text-[11px] text-slate-600">Strength: {strength < 3 ? 'weak' : strength < 5 ? 'good' : 'strong'} · 10+ characters, upper and lowercase, number, symbol</p>
+            </div>
           </div>
+          <div>
+            <label htmlFor="confirm-password" className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A4D68]">Confirm new password</label>
+            <div className="relative">
+              <input id="confirm-password" type={showConfirmation ? 'text' : 'password'} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="w-full rounded-[14px] border border-transparent bg-[#F1F5F9] px-4 py-3.5 pr-20 text-sm text-[#0A4D68] transition focus:border-[#088395] focus:outline-none focus:ring-2 focus:ring-[#088395]/15" />
+              <button type="button" onClick={() => setShowConfirmation((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-[#0A4D68] transition hover:bg-[#E0F7FA]">{showConfirmation ? 'Hide' : 'Show'}</button>
+            </div>
+          </div>
+          <button disabled={busy} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0A4D68] to-[#088395] px-4 text-sm font-bold text-white shadow-[0_10px_24px_rgba(8,131,149,0.22)] transition-all duration-200 hover:from-[#083F56] hover:to-[#077584] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60">
+            {busy ? <><Loader2 size={17} className="animate-spin" /> Updating password...</> : <>Update Password <ArrowRight size={17} /></>}
+          </button>
+        </form>
+      )}
 
-          {notice && <p role="status" className="mb-4 rounded-xl bg-brand-tint px-4 py-3 text-sm leading-relaxed text-navy">{notice}</p>}
-          {error && <p role="alert" className="mb-4 rounded-xl border border-danger/30 bg-danger-tint px-4 py-3 text-sm leading-relaxed text-danger">{error}</p>}
-
-          {step === 'email' && (
-            <form onSubmit={requestCode} className="space-y-5">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy" htmlFor="recovery-email">Registered email address</label>
-                <input
-                  id="recovery-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  maxLength={254}
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-navy placeholder:text-ink-secondary focus:border-brand-light focus:outline-none focus:ring-2 focus:ring-brand-light"
-                />
-              </div>
-              <button disabled={busy} className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-bold text-white shadow-card hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-60">
-                {busy ? <><Loader2 size={17} className="animate-spin" /> Sending code…</> : <>Send OTP <ArrowRight size={17} /> </>}
-              </button>
-            </form>
-          )}
-
-          {step === 'otp' && (
-            <form onSubmit={verifyCode} className="space-y-5">
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-navy" htmlFor="recovery-code">Six-digit verification code</label>
-                <input
-                  id="recovery-code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  value={code}
-                  onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  className="w-full rounded-xl border border-line bg-white px-4 py-4 text-center font-mono text-2xl font-bold tracking-[0.55em] text-navy placeholder:text-line focus:border-brand-light focus:outline-none focus:ring-2 focus:ring-brand-light"
-                />
-                <div className="mt-2 flex justify-between gap-2 text-xs text-ink-secondary">
-                  <span>{expiresIn > 0 ? `Code expires in ${formatTime(expiresIn)}` : 'This code has expired.'}</span>
-                  <button type="button" onClick={() => { setStep('email'); setError(''); setNotice('') }} className="font-semibold text-navy underline">Change email</button>
-                </div>
-              </div>
-              <button disabled={busy || expiresIn === 0} className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-bold text-white shadow-card hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-60">
-                {busy ? <><Loader2 size={17} className="animate-spin" /> Verifying…</> : <>Verify OTP <ArrowRight size={17} /></>}
-              </button>
-              <button type="button" disabled={busy || resendIn > 0} onClick={resendCode} className="w-full text-sm font-semibold text-navy disabled:cursor-not-allowed disabled:text-ink-secondary">
-                {resendIn > 0 ? `Resend code in ${formatTime(resendIn)}` : 'Resend OTP'}
-              </button>
-            </form>
-          )}
-
-          {step === 'password' && (
-            <form onSubmit={updatePassword} className="space-y-4">
-              <div>
-                <label htmlFor="new-password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy">New password</label>
-                <div className="relative">
-                  <input id="new-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-xl border border-line px-4 py-3.5 pr-20 text-sm text-navy focus:border-brand-light focus:outline-none focus:ring-2 focus:ring-brand-light" />
-                  <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-navy">{showPassword ? 'Hide' : 'Show'}</button>
-                </div>
-                <div className="mt-2" aria-label={`Password strength: ${strength} of 5`}>
-                  <div className="flex gap-1">{Array.from({ length: 5 }, (_, index) => <span key={index} className={`h-1.5 flex-1 rounded-full ${index < strength ? (strength < 3 ? 'bg-danger' : strength < 5 ? 'bg-warning' : 'bg-success') : 'bg-line'}`} />)}</div>
-                  <p className="mt-1 text-[11px] text-ink-secondary">Strength: {strength < 3 ? 'weak' : strength < 5 ? 'good' : 'strong'} · 10+ characters, upper and lowercase, number, symbol</p>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="confirm-password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy">Confirm new password</label>
-                <div className="relative">
-                  <input id="confirm-password" type={showConfirmation ? 'text' : 'password'} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="w-full rounded-xl border border-line px-4 py-3.5 pr-20 text-sm text-navy focus:border-brand-light focus:outline-none focus:ring-2 focus:ring-brand-light" />
-                  <button type="button" onClick={() => setShowConfirmation((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-navy">{showConfirmation ? 'Hide' : 'Show'}</button>
-                </div>
-              </div>
-              <button disabled={busy} className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-bold text-white shadow-card hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-60">
-                {busy ? <><Loader2 size={17} className="animate-spin" /> Updating password…</> : <>Update Password <ArrowRight size={17} /></>}
-              </button>
-            </form>
-          )}
-
-          {step === 'success' && (
-            <button type="button" onClick={() => navigate('/login')} className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-bold text-white shadow-card hover:bg-navy-hover">
-              Back to Login <ArrowRight size={17} />
-            </button>
-          )}
-        </div>
-      </section>
-    </main>
+      {step === 'success' && (
+        <button type="button" onClick={() => navigate('/login')} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0A4D68] to-[#088395] px-4 text-sm font-bold text-white shadow-[0_10px_24px_rgba(8,131,149,0.22)] transition-all duration-200 hover:from-[#083F56] hover:to-[#077584] active:scale-[0.99]">
+          Back to Login <ArrowRight size={17} />
+        </button>
+      )}
+    </div>
   )
 }

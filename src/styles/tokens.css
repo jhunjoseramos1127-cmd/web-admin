@@ -1,28 +1,26 @@
 /* FreshSpin brand palette — single source of truth. No hex codes inside components. */
 :root {
-  --navy:       #164E63;
-  --navy-hover: #0F3A4B;
-  --blue:       #8ED8F8;
-  --blue-soft:  #D3EFFC;
-  --page:       #EAF8FE;
+  --navy:       #0A4D68;
+  --navy-hover: #083F56;
+  --blue:       #088395;
+  --blue-soft:  #E0F7FA;
+  --page:       #F8FAFC;
   --white:      #FFFFFF;
-  --text-muted: #5B7C8A;
-  --border:     #D6E6EE;
-  --search:      #EAF7FC;
-  --purple:      #7C3AED;
-  --purple-bg:   #EDE9FE;
+  --text-muted: #64748B;
+  --border:     #E2E8F0;
+  --search:     #F1F5F9;
 
   /* status only: badges, alerts, errors */
-  --success:    #16A34A;
-  --success-bg: #DCFCE7;
-  --warning:    #D97706;
-  --warning-bg: #FEF3C7;
-  --danger:     #DC2626;
-  --danger-bg:  #FEE2E2;
+  --success:    #088395;
+  --success-bg: #E0F7FA;
+  --warning:    #088395;
+  --warning-bg: #F0F9FF;
+  --danger:     #B91C1C;
+  --danger-bg:  rgba(239, 68, 68, 0.1);
 
-  --shadow-card: 0 2px 10px rgba(22, 78, 99, 0.08);
-  --shadow-pop:  0 8px 24px rgba(22, 78, 99, 0.16);
+  --shadow-card: 0 3px 12px rgba(10, 77, 104, 0.08);
+  --shadow-pop:  0 12px 30px rgba(10, 77, 104, 0.16);
 
   --transition: 160ms ease;
-  --focus-ring: 0 0 0 3px rgba(142, 216, 248, 0.6);
+  --focus-ring: 0 0 0 3px rgba(8, 131, 149, 0.18);
 }

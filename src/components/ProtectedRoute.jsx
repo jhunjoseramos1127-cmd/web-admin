@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -37,6 +38,60 @@ function AccessDenied({ onLogout }) {
 
 export default function ProtectedRoute() {
   const { user, loading, logout } = useAuth()
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return undefined
+
+    const blockContextMenu = (event) => {
+      event.preventDefault()
+    }
+
+    const blockInspectionShortcuts = (event) => {
+      const key = event.key.toLowerCase()
+      const modifier = event.ctrlKey || event.metaKey
+
+      if (
+        event.key === 'F12'
+        || (modifier && event.shiftKey && ['i', 'j', 'c'].includes(key))
+        || (modifier && ['u', 's'].includes(key))
+      ) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    const blockBrowserActions = (event) => event.preventDefault()
+
+    const detectDevTools = () => {
+      const widthGap = window.outerWidth - window.innerWidth
+      const heightGap = window.outerHeight - window.innerHeight
+      const devToolsLikelyOpen = widthGap > 160 || heightGap > 160
+      document.documentElement.classList.toggle('admin-inspection-blocked', devToolsLikelyOpen)
+    }
+
+    document.addEventListener('contextmenu', blockContextMenu)
+    document.addEventListener('keydown', blockInspectionShortcuts)
+    document.addEventListener('selectstart', blockBrowserActions)
+    document.addEventListener('dragstart', blockBrowserActions)
+    document.addEventListener('copy', blockBrowserActions)
+    document.addEventListener('cut', blockBrowserActions)
+    window.addEventListener('resize', detectDevTools)
+
+    detectDevTools()
+    const devToolsCheck = window.setInterval(detectDevTools, 1000)
+
+    return () => {
+      document.removeEventListener('contextmenu', blockContextMenu)
+      document.removeEventListener('keydown', blockInspectionShortcuts)
+      document.removeEventListener('selectstart', blockBrowserActions)
+      document.removeEventListener('dragstart', blockBrowserActions)
+      document.removeEventListener('copy', blockBrowserActions)
+      document.removeEventListener('cut', blockBrowserActions)
+      window.removeEventListener('resize', detectDevTools)
+      window.clearInterval(devToolsCheck)
+      document.documentElement.classList.remove('admin-inspection-blocked')
+    }
+  }, [user])
 
   if (loading) return <FullScreenSpinner />
 

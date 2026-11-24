@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Award, Gift, History, LoaderCircle, Search, Sparkles, UserRound } from 'lucide-react'
+import { Award, Gift, History, LoaderCircle, Sparkles, UserRound } from 'lucide-react'
 import api from '../api/client'
+import ExpandableSearch from './ExpandableSearch'
 
 const EMPTY_DATA = {
   metrics: { total_members: 0, total_stamps_earned: 0, total_rewards_redeemed: 0 },
@@ -142,10 +143,7 @@ export default function LoyaltyView({ showToast }) {
             <h2 className="font-bold text-navy">Loyalty members</h2>
             <p className="text-xs text-ink-secondary">Select a registered customer to view history or manage stamps.</p>
           </div>
-          <label className="relative block w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-secondary" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, phone, email" className="w-full rounded-xl border border-line py-2 pl-9 pr-3 text-sm outline-none focus:border-sky-500" />
-          </label>
+          <ExpandableSearch className="w-full sm:max-w-xs" value={search} onChange={setSearch} placeholder="Search name, phone, email" ariaLabel="Search loyalty customers" />
         </div>
         {loading ? (
           <div className="flex justify-center py-12"><LoaderCircle className="h-6 w-6 animate-spin text-sky-600" /></div>

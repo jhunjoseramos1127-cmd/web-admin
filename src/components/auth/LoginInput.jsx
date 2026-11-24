@@ -1,9 +1,5 @@
 import { Eye, EyeOff } from 'lucide-react'
 
-/**
- * Labeled admin-login input: white bg, light-blue border + focus,
- * navy icon, inline validation message.
- */
 export default function LoginInput({
   id,
   label,
@@ -20,20 +16,19 @@ export default function LoginInput({
   showToggle,
   showPassword,
   onTogglePassword,
-  inputClassName = '',
 }) {
   return (
     <div>
       <label
         htmlFor={id}
-        className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy"
+        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A4D68]"
       >
         {label}
       </label>
       <div className="relative">
         {Icon && (
           <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-            <Icon className="h-4.5 w-4.5 text-navy" size={18} />
+            <Icon className="text-[#088395]" size={18} />
           </span>
         )}
         <input
@@ -48,14 +43,14 @@ export default function LoginInput({
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`w-full rounded-xl border border-line ${inputClassName || 'bg-white'} py-3.5 pl-11 pr-11 text-sm text-navy placeholder:text-ink-secondary transition focus:border-brand-light focus:outline-none focus:ring-2 focus:ring-brand-light disabled:opacity-50`}
+          className="w-full rounded-[14px] border border-transparent bg-[#F1F5F9] py-3.5 pl-11 pr-11 text-sm text-[#0A4D68] placeholder:text-slate-500 transition focus:border-[#088395] focus:outline-none focus:ring-2 focus:ring-[#088395]/15 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {showToggle && (
           <button
             type="button"
             onClick={onTogglePassword}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-navy transition hover:bg-brand-tint"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#0A4D68] transition hover:bg-[#E0F7FA]"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>

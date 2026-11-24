@@ -1,10 +1,5 @@
 import { useState } from 'react'
 
-/**
- * FreshSpin circular brand mark.
- * Renders the official logo file (/public/images/logo.png.png) and falls back
- * to the inline SVG below if the file is ever missing or renamed.
- */
 export default function FreshSpinLogo({ size = 48 }) {
   const [imageFailed, setImageFailed] = useState(false)
 
@@ -47,15 +42,26 @@ export default function FreshSpinLogo({ size = 48 }) {
   )
 }
 
-export function FreshSpinWordmark({ compact = false }) {
+export function FreshSpinWordmark({ compact = false, tone = 'default' }) {
+  const titleTone = tone === 'light'
+    ? 'text-white'
+    : tone === 'brand'
+      ? 'text-[#0A4D68]'
+      : 'text-navy'
+  const subtitleTone = tone === 'light'
+    ? 'text-cyan-100'
+    : tone === 'brand'
+      ? 'text-[#088395]'
+      : 'text-ink-secondary'
+
   return (
     <span className="leading-tight">
       <span
-        className={`block font-extrabold tracking-tight text-navy ${compact ? 'text-xl' : 'text-[22px]'}`}
+        className={`block font-extrabold tracking-tight ${titleTone} ${compact ? 'text-xl' : 'text-[22px]'}`}
       >
         FreshSpin
       </span>
-      <span className="block text-[10px] font-semibold tracking-[0.22em] text-ink-secondary">
+      <span className={`block text-[10px] font-semibold tracking-[0.22em] ${subtitleTone}`}>
         LAUNDRY SERVICE
       </span>
     </span>

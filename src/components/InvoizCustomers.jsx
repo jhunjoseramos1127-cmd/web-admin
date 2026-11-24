@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import './InvoizCustomers.css'
+import ExpandableSearch from './ExpandableSearch'
 
 const navigation = [
   { label: 'Dashboard', icon: LayoutDashboard },
@@ -129,17 +130,7 @@ export default function InvoizCustomers() {
               <h1>Customers</h1>
               <p>Manage your customers and their order status.</p>
             </div>
-            <label className="invoiz-search">
-              <Search size={18} />
-              <input
-                aria-label="Search customer"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search customer..."
-                type="search"
-                value={query}
-              />
-              <kbd>⌘ K</kbd>
-            </label>
+            <ExpandableSearch className="max-w-[300px]" value={query} onChange={setQuery} placeholder="Search customer..." ariaLabel="Search customer" />
           </div>
 
           <section className="invoiz-customer-section" aria-label="Customer list">

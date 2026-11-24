@@ -103,53 +103,53 @@ export default function AnalyticsView({
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="fs-admin-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Revenue */}
-          <div className="p-5 rounded-2xl bg-white border border-line">
+          <div className="fs-admin-card flex h-full min-h-[132px] flex-col p-5 rounded-2xl bg-white border border-line">
             <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Total Sales Revenue</span>
-            <div className="mt-2 text-2xl font-black text-emerald-400">
+            <div className="mt-auto pt-2 text-2xl font-black text-emerald-400">
               {formatCurrency(desc.total_sales || metrics.totalRevenue)}
             </div>
-            <div className="mt-2 text-xs text-ink-secondary flex items-center justify-between">
+            <div className="mt-auto flex min-h-5 items-center justify-between gap-2 pt-2 text-xs text-ink-secondary">
               <span>Avg Order: {formatCurrency(desc.average_order_value ?? (metrics.totalOrdersCount > 0 ? metrics.totalRevenue / metrics.totalOrdersCount : 0))}</span>
               <span className="text-emerald-400 font-semibold">100% PHP</span>
             </div>
           </div>
 
           {/* Total Orders & Volume */}
-          <div className="p-5 rounded-2xl bg-white border border-line">
+          <div className="fs-admin-card flex h-full min-h-[132px] flex-col p-5 rounded-2xl bg-white border border-line">
             <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Order Volume</span>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-auto flex items-baseline gap-2 pt-2">
               <span className="text-2xl font-black text-navy">{desc.total_orders || metrics.totalOrdersCount}</span>
               <span className="text-xs text-ink-secondary">total orders</span>
             </div>
-            <div className="mt-2 text-xs text-ink-secondary flex items-center justify-between">
+            <div className="mt-auto flex min-h-5 items-center justify-between gap-2 pt-2 text-xs text-ink-secondary">
               <span className="text-navy font-semibold">{desc.picked_up_orders ?? metrics.pickedUpOrdersCount} Completed</span>
               <span className="text-rose-400">{desc.cancelled_orders || 0} Cancelled</span>
             </div>
           </div>
 
           {/* Average Drying Time */}
-          <div className="p-5 rounded-2xl bg-white border border-line">
+          <div className="fs-admin-card flex h-full min-h-[132px] flex-col p-5 rounded-2xl bg-white border border-line">
             <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Average Drying Time</span>
-            <div className="mt-2 flex items-baseline gap-1.5">
+            <div className="mt-auto flex items-baseline gap-1.5 pt-2">
               <span className="text-2xl font-black text-amber-400">{desc.average_drying_time_minutes ?? '—'}</span>
               <span className="text-xs text-ink-secondary">minutes/batch</span>
             </div>
-            <div className="mt-2 text-xs text-ink-secondary flex items-center gap-1">
+            <div className="mt-auto flex min-h-5 items-center gap-1 pt-2 text-xs text-ink-secondary">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               <span>Standard Heated Tumble Cycle</span>
             </div>
           </div>
 
           {/* Environmental Telemetry Avg */}
-          <div className="p-5 rounded-2xl bg-white border border-line">
+          <div className="fs-admin-card flex h-full min-h-[132px] flex-col p-5 rounded-2xl bg-white border border-line">
             <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Average Humidity</span>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-auto flex items-baseline gap-2 pt-2">
               <span className="text-2xl font-black text-navy">{desc.average_humidity ?? '—'}%</span>
               <span className="text-xs text-ink-secondary">RH</span>
             </div>
-            <div className="mt-2 text-xs text-ink-secondary flex items-center justify-between">
+            <div className="mt-auto flex min-h-5 items-center justify-between gap-2 pt-2 text-xs text-ink-secondary">
               <span className="text-amber-400">{desc.high_humidity_events ?? 0} High Events</span>
             </div>
           </div>

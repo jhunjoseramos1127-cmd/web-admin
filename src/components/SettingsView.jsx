@@ -4,7 +4,7 @@ import {
   Settings, Sliders, Shield, Save, RefreshCw, Cpu, Droplets, Building2, Phone, MapPin, FileText, Lock, Layers
 } from 'lucide-react'
 
-export default function SettingsView({ showToast }) {
+export default function SettingsView({ showToast, onLimitsUpdated }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState(null)
@@ -18,6 +18,8 @@ export default function SettingsView({ showToast }) {
   const [humidityThreshold, setHumidityThreshold] = useState(70.0)
   const [dryingTimeDefault, setDryingTimeDefault] = useState(60)
   const [systemStatus, setSystemStatus] = useState('Online')
+  const [maxAdditionalCharges, setMaxAdditionalCharges] = useState('0')
+  const [maxDiscount, setMaxDiscount] = useState('0')
 
   // Legal Documents
   const [termsConditions, setTermsConditions] = useState('')
@@ -44,6 +46,8 @@ export default function SettingsView({ showToast }) {
         if (d.humidity_threshold) setHumidityThreshold(d.humidity_threshold)
         if (d.drying_time_default) setDryingTimeDefault(d.drying_time_default)
         if (d.system_status) setSystemStatus(d.system_status)
+        if (d.max_additional_charges !== undefined) setMaxAdditionalCharges(String(d.max_additional_charges))
+        if (d.max_discount !== undefined) setMaxDiscount(String(d.max_discount))
         if (d.terms_conditions !== undefined) setTermsConditions(d.terms_conditions || '')
         if (d.privacy_policy !== undefined) setPrivacyPolicy(d.privacy_policy || '')
       }
@@ -81,12 +85,18 @@ export default function SettingsView({ showToast }) {
         humidity_threshold: Number(humidityThreshold),
         drying_time_default: Number(dryingTimeDefault),
         system_status: systemStatus,
+        max_additional_charges: Number(maxAdditionalCharges),
+        max_discount: Number(maxDiscount),
         terms_conditions: termsConditions,
         privacy_policy: privacyPolicy
       }
 
       const res = await api.put('/api/settings', payload)
       if (res?.data?.success) {
+        onLimitsUpdated?.({
+          max_additional_charges: Number(res.data.data?.max_additional_charges ?? maxAdditionalCharges),
+          max_discount: Number(res.data.data?.max_discount ?? maxDiscount),
+        })
         showToast('System settings and sensor thresholds saved successfully!')
       } else {
         showToast(res?.data?.message || 'Failed to save settings', 'error')
@@ -163,6 +173,46 @@ export default function SettingsView({ showToast }) {
       </div>
 
       <form onSubmit={handleSaveSettings} className="space-y-6">
+        <div className="bg-white rounded-2xl border border-line shadow-xl p-6 space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-line pb-3">
+            <Sliders className="w-5 h-5 text-navy" />
+            <div>
+              <h3 className="text-sm font-bold text-navy uppercase tracking-wider">Order Charge & Discount Limits</h3>
+              <p className="mt-1 text-[11px] text-ink-secondary">These saved limits are applied to new orders across the admin portal and API.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="space-y-1.5 rounded-xl border border-line bg-brand-tint p-4">
+              <label className="block font-bold text-navy" htmlFor="max-additional-charges">Maximum Additional Charges (₱)</label>
+              <input
+                id="max-additional-charges"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={maxAdditionalCharges}
+                onChange={(event) => setMaxAdditionalCharges(event.target.value)}
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 font-mono text-navy focus:border-brand-light focus:outline-none"
+              />
+              <p className="text-[11px] text-ink-secondary">Applied to each transaction with an additional charge.</p>
+            </div>
+            <div className="space-y-1.5 rounded-xl border border-line bg-brand-tint p-4">
+              <label className="block font-bold text-navy" htmlFor="max-order-discount">Maximum Discount (₱)</label>
+              <input
+                id="max-order-discount"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={maxDiscount}
+                onChange={(event) => setMaxDiscount(event.target.value)}
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 font-mono text-navy focus:border-brand-light focus:outline-none"
+              />
+              <p className="text-[11px] text-ink-secondary">The order discount is also limited to 50% of the laundry subtotal.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Section 1: ESP32 IoT & Sensor Thresholds */}
         <div className="bg-white rounded-2xl border border-line shadow-xl p-6 space-y-5">
           <div className="flex items-center gap-2.5 border-b border-line pb-3">

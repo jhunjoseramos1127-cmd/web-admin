@@ -3,9 +3,10 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, Users, PhilippinePeso, FileText,
   Droplets, Box, BarChart3, FileBarChart, Bell, MessageCircle, Settings, LogOut,
-  Menu, X, ShieldAlert, Search, HeartHandshake
+  Menu, X, ShieldAlert, HeartHandshake
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import ExpandableSearch from './ExpandableSearch'
 import { ConfirmDialog } from './shared'
 import FreshSpinLogo from './auth/FreshSpinLogo'
 
@@ -57,16 +58,16 @@ function SidebarLink({ to, label, icon: Icon, collapsed, end, onNavigate }) {
       end={end}
       onClick={onNavigate}
       className={({ isActive }) =>
-        `relative flex items-center gap-3 px-4 py-1 rounded-xl text-[13.5px] font-semibold transition-all duration-200 group ${
+        `sidebar-nav-link relative flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 group ${
           isActive
-            ? 'bg-brand-light text-navy shadow-card'
+            ? 'bg-[#DDF3F8] text-[#0A4D68] shadow-card'
             : 'text-white/75 hover:text-white hover:bg-white/10'
         } ${collapsed ? 'justify-center px-3' : ''}`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-navy' : 'text-brand-light group-hover:text-white'}`} strokeWidth={isActive ? 2.25 : 1.75} />
+          <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-[#0A4D68]' : 'text-[#A5F3F3] group-hover:text-white'}`} strokeWidth={isActive ? 2.25 : 1.75} />
           {!collapsed && <span className="truncate">{label}</span>}
         </>
       )}
@@ -74,7 +75,7 @@ function SidebarLink({ to, label, icon: Icon, collapsed, end, onNavigate }) {
   )
 }
 
-export default function AppLayout({ children, unreadCount = 0, humidityWarning = false }) {
+export default function AppLayout({ children, unreadCount = 0, supportUnreadCount = 0, humidityWarning = false }) {
   const { user, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -100,9 +101,9 @@ export default function AppLayout({ children, unreadCount = 0, humidityWarning =
   }
 
   const sidebarContent = (onNavigate) => (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Brand */}
-      <div className={`shrink-0 flex items-center gap-3 px-4 py-4 border-b border-white/10 ${collapsed && !isMobile ? 'flex-col justify-center gap-2' : ''}`}>
+      <div className={`sidebar-brand shrink-0 flex items-center gap-3 px-4 py-4 border-b border-white/10 ${collapsed && !isMobile ? 'flex-col justify-center gap-2' : ''}`}>
         <span className="shrink-0 drop-shadow-lg">
           <FreshSpinLogo size={collapsed && !isMobile ? 36 : 40} />
         </span>
@@ -125,13 +126,13 @@ export default function AppLayout({ children, unreadCount = 0, humidityWarning =
       </div>
 
       {/* Nav — never scrolls; grouped and compact so all items fit 100vh */}
-      <nav className="flex-1 min-h-0 overflow-hidden px-2 pb-1">
+      <nav className="flex-1 min-h-0 overflow-y-hidden overflow-x-hidden px-2 pb-1">
         {NAV_GROUPS.map((group) => (
           <div key={group.title} className="mb-0.5">
             {(collapsed && !isMobile) ? (
-              <div aria-hidden="true" className="mx-auto my-1.5 h-px w-6 bg-white/20" />
+              <div aria-hidden="true" className="mx-auto my-1.5 h-px w-6 bg-white/25" />
             ) : (
-              <div className="truncate px-3 pb-0 pt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-brand-light/70">
+              <div className="sidebar-section-label truncate px-3 pb-0.5 pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[#A5F3F3]/85">
                 {group.title}
               </div>
             )}
@@ -145,8 +146,13 @@ export default function AppLayout({ children, unreadCount = 0, humidityWarning =
                       <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                     )}
                     {item.to === '/notifications' && unreadCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-brand-light text-navy rounded-full flex items-center justify-center">
+                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-[#DDF3F8] text-[#0A4D68] rounded-full flex items-center justify-center">
                         {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                    {item.to === '/support' && supportUnreadCount > 0 && (
+                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-[#DDF3F8] text-[#0A4D68] rounded-full flex items-center justify-center">
+                        {supportUnreadCount > 99 ? '99+' : supportUnreadCount}
                       </span>
                     )}
                   </div>
@@ -160,12 +166,12 @@ export default function AppLayout({ children, unreadCount = 0, humidityWarning =
       {/* Decorative footer — shown only when the viewport is tall enough
           to fit it without scrolling */}
       {(!collapsed || isMobile) && (
-        <div className="mt-auto shrink-0 relative mx-4 mb-4 overflow-hidden rounded-2xl px-4 pb-6 pt-5 text-center hidden tall:block">
+        <div className="mt-auto shrink-0 relative mx-4 mb-3 overflow-hidden rounded-2xl px-3 pb-3 pt-3 text-center hidden tall:block">
           <span aria-hidden="true" className="absolute -left-5 -top-5 h-16 w-16 rounded-full bg-brand-light/25" />
           <span aria-hidden="true" className="absolute -bottom-6 -right-6 h-20 w-20 rounded-full bg-brand-light/15" />
           <span aria-hidden="true" className="absolute right-8 top-3 h-3 w-3 rounded-full border-2 border-white/50 bg-white/20" />
           <span aria-hidden="true" className="absolute left-10 bottom-8 h-2 w-2 rounded-full border border-white/40" />
-          <p className="font-script relative text-[30px] leading-[1.15] text-white">
+          <p className="font-script relative text-[24px] leading-[1.1] text-white">
             Clean Clothes
             <br />
             Happy Customers ♡
@@ -242,23 +248,14 @@ export default function AppLayout({ children, unreadCount = 0, humidityWarning =
             )}
           </div>
           {/* Global search → Orders page filter */}
-          <form
-            className="relative hidden sm:block w-full max-w-md"
-            onSubmit={(e) => {
-              e.preventDefault()
-              navigate(`/orders${globalSearch.trim() ? `?q=${encodeURIComponent(globalSearch.trim())}` : ''}`)
-            }}
-          >
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-navy pointer-events-none" />
-            <input
-              type="search"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              placeholder="Search..."
-              aria-label="Search orders"
-              className="w-full h-11 pl-11 pr-4 rounded-full bg-search border border-transparent text-sm text-navy placeholder-ink-secondary focus:outline-none focus:border-brand-light focus:bg-white focus:ring-2 focus:ring-brand-light transition"
-            />
-          </form>
+          <ExpandableSearch
+            className="hidden sm:flex w-full max-w-md"
+            value={globalSearch}
+            onChange={setGlobalSearch}
+            placeholder="Search..."
+            ariaLabel="Search orders"
+            onSubmit={() => navigate(`/orders${globalSearch.trim() ? `?q=${encodeURIComponent(globalSearch.trim())}` : ''}`)}
+          />
           {/* Right side: user menu */}
           <div className="flex items-center gap-3 ml-auto">
             <NavLink
@@ -294,13 +291,8 @@ export default function AppLayout({ children, unreadCount = 0, humidityWarning =
 
         {/* Scrollable content — stable gutter so the scrollbar appearing or
             disappearing never changes the content width mid-scroll */}
-        <main className="relative flex-1 p-3 lg:p-4 overflow-y-auto [scrollbar-gutter:stable] bg-gradient-to-b from-brand-tint via-white to-white">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-            <span className="absolute right-[8%] top-10 h-16 w-16 rounded-full border-2 border-brand-light/40 bg-white/40" />
-            <span className="absolute bottom-[12%] left-[4%] h-10 w-10 rounded-full bg-brand-light/30" />
-            <span className="absolute bottom-[30%] right-[3%] h-6 w-6 rounded-full border border-brand-light/50 bg-white/30" />
-          </div>
-          <div className="relative">{children}</div>
+        <main className="relative flex-1 p-4 lg:p-6 overflow-y-auto [scrollbar-gutter:stable] bg-[#F8FAFC]">
+          <div className="fs-admin-page relative">{children}</div>
         </main>
         <footer className="flex flex-col sm:flex-row items-center justify-between gap-1 border-t border-line bg-white/80 px-4 lg:px-6 py-1.5 text-[11px] text-ink-secondary">
           <span>© 2025 FreshSpin Laundry. All rights reserved.</span>

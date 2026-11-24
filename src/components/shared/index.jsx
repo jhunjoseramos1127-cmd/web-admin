@@ -10,28 +10,28 @@ export function Spinner({ className = 'w-5 h-5' }) {
 // ─── StatCard ────────────────────────────────────────────────────────────────
 export function StatCard({ label, value, sub, icon: Icon, color = 'cyan', onClick }) {
   const colorMap = {
-    cyan: { bg: 'bg-brand-tintstrong', border: 'border-brand-light', text: 'text-navy', glow: 'bg-brand-light/20' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', glow: 'bg-emerald-500/5' },
-    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', glow: 'bg-amber-500/5' },
-    rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', glow: 'bg-rose-500/5' },
-    violet: { bg: 'bg-brand-tintstrong', border: 'border-brand-light', text: 'text-navy', glow: 'bg-brand-light/20' },
+    cyan: { bg: 'bg-brand-tintstrong', border: 'border-brand-light', text: 'text-navy', glow: 'bg-brand-light/20', surface: 'bg-[#EAF6F8] border-[#BFE0E7]' },
+    emerald: { bg: 'bg-emerald-100', border: 'border-emerald-200', text: 'text-emerald-700', glow: 'bg-emerald-500/5', surface: 'bg-[#E0F7FA] border-[#BFEAF0]' },
+    amber: { bg: 'bg-amber-100', border: 'border-amber-200', text: 'text-amber-700', glow: 'bg-amber-500/5', surface: 'bg-[#F0F9FF] border-[#BFEAF0]' },
+    rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-700', glow: 'bg-rose-500/5', surface: 'bg-[#FFF1F2] border-[#F2C9D1]' },
+    violet: { bg: 'bg-brand-tintstrong', border: 'border-brand-light', text: 'text-navy', glow: 'bg-brand-light/20', surface: 'bg-[#F1F5F9] border-[#D7E2EA]' },
   }
   const c = colorMap[color] || colorMap.cyan
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden p-5 rounded-2xl bg-white border border-line shadow-card hover:bg-brand-tint transition group ${onClick ? 'cursor-pointer' : ''}`}
+      className={`fs-admin-card relative flex h-full min-h-[132px] flex-col overflow-hidden p-5 rounded-2xl ${c.surface} shadow-card hover:brightness-[0.99] transition group ${onClick ? 'cursor-pointer' : ''}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider">{label}</span>
+      <div className="flex min-h-10 items-center justify-between gap-3">
+        <span className="min-w-0 text-xs font-semibold text-ink-secondary uppercase tracking-wider leading-tight">{label}</span>
         {Icon && (
-          <div className={`p-3 rounded-2xl ${c.bg} ${c.text} border ${c.border} shadow-card`}>
-            <Icon className="w-6 h-6" />
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${c.bg} ${c.text} border ${c.border} shadow-card`}>
+            <Icon className="w-5 h-5" />
           </div>
         )}
       </div>
-      <div className="mt-3 text-3xl font-black text-navy">{value}</div>
-      {sub && <div className="mt-1 text-xs text-ink-secondary">{sub}</div>}
+      <div className="mt-auto pt-2 text-3xl font-black leading-none text-navy">{value}</div>
+      {sub && <div className="mt-1 min-h-4 text-xs text-ink-secondary">{sub}</div>}
       <div className={`absolute top-0 right-0 w-24 h-24 ${c.glow} rounded-full blur-2xl group-hover:opacity-150 transition`} />
       <svg aria-hidden="true" viewBox="0 0 200 24" preserveAspectRatio="none" className="absolute bottom-0 left-0 h-5 w-full"><path d="M0,14 C40,4 80,22 120,12 C150,5 175,16 200,10 L200,24 L0,24 Z" fill="var(--blue-soft)" opacity="0.7" /></svg>
     </div>
@@ -94,18 +94,18 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, confi
       <div className="w-full max-w-sm bg-white border border-line rounded-[22px] p-6 shadow-pop">
         <h3 className="text-base font-bold text-navy mb-2">{title}</h3>
         <p className="text-sm text-ink-secondary mb-6">{message}</p>
-        <div className="flex gap-3 justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
           <button
             onClick={onCancel}
             disabled={busy}
-            className="px-4 py-2 text-sm font-semibold rounded-xl bg-brand-tint hover:bg-brand-tintstrong text-navy transition disabled:opacity-50"
+            className="min-h-10 px-4 py-2 text-sm font-semibold rounded-xl bg-brand-tint hover:bg-brand-tintstrong text-navy transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={disabled}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition disabled:opacity-50 flex items-center gap-2 ${
+            className={`min-h-10 px-4 py-2 text-sm font-semibold rounded-xl transition disabled:opacity-50 flex items-center gap-2 ${
               danger
                 ? 'bg-rose-600 hover:bg-rose-500 text-white'
                 : 'bg-navy hover:bg-navy-hover text-white'
@@ -115,6 +115,25 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, confi
             {busy ? 'Preparing…' : confirmLabel}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+export function PaginationControls({ page, pageSize, totalItems, onPageChange }) {
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize))
+  if (totalItems <= pageSize) return null
+
+  const firstItem = (page - 1) * pageSize + 1
+  const lastItem = Math.min(page * pageSize, totalItems)
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-line px-4 py-3 text-xs text-ink-secondary sm:flex-row sm:items-center sm:justify-between">
+      <span>Showing {firstItem}–{lastItem} of {totalItems}</span>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => onPageChange(page - 1)} disabled={page <= 1} className="min-h-10 rounded-lg border border-line px-3 py-1.5 font-semibold text-navy transition hover:bg-brand-tint disabled:cursor-not-allowed disabled:opacity-50">Previous</button>
+        <span className="min-w-20 text-center">Page {page} of {pageCount}</span>
+        <button type="button" onClick={() => onPageChange(page + 1)} disabled={page >= pageCount} className="min-h-10 rounded-lg border border-line px-3 py-1.5 font-semibold text-navy transition hover:bg-brand-tint disabled:cursor-not-allowed disabled:opacity-50">Next</button>
       </div>
     </div>
   )

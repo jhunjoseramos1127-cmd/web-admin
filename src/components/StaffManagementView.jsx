@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '../api/client'
 import {
-  Users, UserPlus, Shield, Key, Mail, CheckCircle, X, Archive, Edit3, RefreshCw
+  Users, UserPlus, X, Archive, Edit3, RefreshCw, Eye, Phone
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { ConfirmDialog } from './shared'
+import ExpandableSearch from './ExpandableSearch'
+import { ConfirmDialog, PaginationControls } from './shared'
 
 export default function StaffManagementView({ showToast }) {
   const { user: currentUser } = useAuth()
@@ -14,6 +15,16 @@ export default function StaffManagementView({ showToast }) {
   const [showArchived, setShowArchived] = useState(false)
   const [archivingUser, setArchivingUser] = useState(null)
   const [restoringUser, setRestoringUser] = useState(null)
+  const [selectedStaffDetails, setSelectedStaffDetails] = useState(null)
+  const [query, setQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState('All')
+  const [page, setPage] = useState(1)
+  const [inactivePage, setInactivePage] = useState(1)
+  const [formBusy, setFormBusy] = useState(false)
+  const [accountActionBusy, setAccountActionBusy] = useState(false)
+  const [detailsLoadingId, setDetailsLoadingId] = useState(null)
+  const formInFlight = useRef(false)
+  const accountActionInFlight = useRef(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState(null)
@@ -21,15 +32,18 @@ export default function StaffManagementView({ showToast }) {
   // Form State
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('staff')
+  const pageSize = 10
 
   const fetchStaff = async () => {
     setLoading(true)
     setLoadError(null)
     try {
       const res = await api.get('/api/staff')
-      setStaffList(res.data?.data || [])
+      if (!Array.isArray(res.data?.data)) throw new Error(res.data?.message || 'The server returned an invalid staff list.')
+      setStaffList(res.data.data)
     } catch (err) {
       setLoadError(err.response?.data?.message || 'Unable to load staff. Check your connection and retry.')
     } finally {
@@ -43,22 +57,26 @@ export default function StaffManagementView({ showToast }) {
 
   const handleCreateStaff = async (e) => {
     e.preventDefault()
-    if (!name || !email || !password) {
+    if (formInFlight.current) return
+    if (!name.trim() || !email.trim() || !password) {
       showToast('Please fill all required fields', 'error')
       return
     }
 
+    formInFlight.current = true
+    setFormBusy(true)
     try {
       const res = await api.post('/api/staff', {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
         password,
         role
       })
 
       if (res?.data?.success) {
         showToast(`Staff member "${name}" created successfully!`)
-        fetchStaff()
+        await fetchStaff()
       } else {
         showToast(res?.data?.message || 'Failed to create staff member', 'error')
         return
@@ -67,27 +85,34 @@ export default function StaffManagementView({ showToast }) {
       setIsAddModalOpen(false)
       setName('')
       setEmail('')
+      setPhone('')
       setPassword('')
       setRole('staff')
     } catch (err) {
-      showToast('Error saving staff member', 'error')
+      showToast(err.response?.data?.message || 'Error saving staff member', 'error')
+    } finally {
+      formInFlight.current = false
+      setFormBusy(false)
     }
   }
 
   const handleUpdateStaff = async (e) => {
     e.preventDefault()
-    if (!selectedStaff) return
+    if (!selectedStaff || formInFlight.current) return
 
+    formInFlight.current = true
+    setFormBusy(true)
     try {
       const res = await api.put(`/api/staff/${selectedStaff.id}`, {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
         role
       })
 
       if (res?.data?.success) {
         showToast(`Staff member "${name}" updated successfully!`)
-        fetchStaff()
+        await fetchStaff()
       } else {
         showToast(res?.data?.message || 'Failed to update staff member', 'error')
         return
@@ -96,44 +121,91 @@ export default function StaffManagementView({ showToast }) {
       setIsEditModalOpen(false)
       setSelectedStaff(null)
     } catch (err) {
-      showToast('Error updating staff member', 'error')
+      showToast(err.response?.data?.message || 'Error updating staff member', 'error')
+    } finally {
+      formInFlight.current = false
+      setFormBusy(false)
     }
   }
 
   const handleArchiveStaff = async () => {
-    if (!archivingUser) return
+    if (!archivingUser || accountActionInFlight.current) return
+    accountActionInFlight.current = true
+    setAccountActionBusy(true)
     try {
       const res = await api.post(`/api/staff/${archivingUser.id}/archive`)
-      showToast(res.data?.message || `${archivingUser.name} archived.`)
+      showToast(res.data?.message || `${archivingUser.name} deactivated.`)
       setArchivingUser(null)
       await fetchStaff()
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to archive account.', 'error')
+      showToast(err.response?.data?.message || 'Failed to deactivate account.', 'error')
+    } finally {
+      accountActionInFlight.current = false
+      setAccountActionBusy(false)
     }
   }
 
   const handleRestoreStaff = async () => {
-    if (!restoringUser) return
+    if (!restoringUser || accountActionInFlight.current) return
+    accountActionInFlight.current = true
+    setAccountActionBusy(true)
     try {
       const res = await api.post(`/api/staff/${restoringUser.id}/restore`)
-      showToast(res.data?.message || `${restoringUser.name} restored.`)
+      showToast(res.data?.message || `${restoringUser.name} activated.`)
       setRestoringUser(null)
       await fetchStaff()
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to restore account.', 'error')
+      showToast(err.response?.data?.message || 'Failed to activate account.', 'error')
+    } finally {
+      accountActionInFlight.current = false
+      setAccountActionBusy(false)
     }
   }
 
-  const activeStaff = staffList.filter(staff => staff.status !== 'inactive')
-  const archivedStaff = staffList.filter(staff => staff.status === 'inactive')
+  const matchingStaff = staffList.filter(staff => {
+    const matchesSearch = !query.trim() || [staff.name, staff.email, staff.phone].some(value => value?.toLowerCase().includes(query.trim().toLowerCase()))
+    const matchesRole = roleFilter === 'All' || staff.role === roleFilter
+    return matchesSearch && matchesRole
+  })
+  const activeStaff = matchingStaff.filter(staff => staff.status !== 'inactive')
+  const archivedStaff = matchingStaff.filter(staff => staff.status === 'inactive')
+  const activePageCount = Math.max(1, Math.ceil(activeStaff.length / pageSize))
+  const inactivePageCount = Math.max(1, Math.ceil(archivedStaff.length / pageSize))
+  const visibleActiveStaff = activeStaff.slice((page - 1) * pageSize, page * pageSize)
+  const visibleInactiveStaff = archivedStaff.slice((inactivePage - 1) * pageSize, inactivePage * pageSize)
 
   const openEditModal = (staff) => {
     setSelectedStaff(staff)
     setName(staff.name)
     setEmail(staff.email)
+    setPhone(staff.phone || '')
     setRole(staff.role)
     setIsEditModalOpen(true)
   }
+
+  const openStaffDetails = async (staff) => {
+    if (detailsLoadingId !== null) return
+    setDetailsLoadingId(staff.id)
+    try {
+      const res = await api.get(`/api/staff/${staff.id}`)
+      if (!res?.data?.data) throw new Error('The server did not return this staff member.')
+      setSelectedStaffDetails(res.data.data)
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Unable to load staff details.', 'error')
+    } finally {
+      setDetailsLoadingId(null)
+    }
+  }
+
+  useEffect(() => {
+    setPage(1)
+    setInactivePage(1)
+  }, [query, roleFilter])
+
+  useEffect(() => {
+    setPage(current => Math.min(current, activePageCount))
+    setInactivePage(current => Math.min(current, inactivePageCount))
+  }, [activePageCount, inactivePageCount])
 
   const renderRoleBadge = (r) => {
     const map = {
@@ -176,6 +248,7 @@ export default function StaffManagementView({ showToast }) {
             onClick={() => {
               setName('')
               setEmail('')
+              setPhone('')
               setPassword('')
               setRole('staff')
               setIsAddModalOpen(true)
@@ -190,28 +263,38 @@ export default function StaffManagementView({ showToast }) {
 
       {/* Staff Table */}
       <div className="bg-white rounded-2xl border border-line shadow-xl overflow-hidden">
-        <div className="p-4 border-b border-line flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="p-4 border-b border-line space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-sm font-bold text-navy">Active Personnel Directory ({activeStaff.length})</h3>
             <button
               type="button"
               onClick={() => setShowArchived(true)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-tintstrong hover:bg-brand-light border border-brand-light text-navy text-xs font-bold transition"
-              aria-label="View Archived Customers"
+              aria-label="View inactive staff accounts"
             >
               <Archive className="w-4 h-4" />
-              <span>Archived Customers</span>
+              <span>Inactive Accounts ({archivedStaff.length})</span>
             </button>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px]">
+            <ExpandableSearch value={query} onChange={setQuery} placeholder="Search name, email, or phone..." ariaLabel="Search staff" />
+            <select value={roleFilter} onChange={event => setRoleFilter(event.target.value)} aria-label="Filter staff by role" className="rounded-xl border border-line bg-white px-3 py-2 text-xs text-navy">
+              <option value="All">All staff roles</option>
+              <option value="admin">Administrator</option>
+              <option value="staff">Laundry Staff</option>
+              <option value="cashier">Cashier</option>
+            </select>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-navy">
+          <table className="w-full min-w-[820px] text-left text-xs text-navy">
             <thead className="bg-brand-tint uppercase text-[11px] font-bold text-ink-secondary border-b border-line">
               <tr>
                 <th className="py-3.5 px-4">Staff Name</th>
-                <th className="py-3.5 px-4">Email / Login</th>
-                <th className="py-3.5 px-4">Role Access</th>
+                <th className="py-3.5 px-4">Email</th>
+                <th className="py-3.5 px-4">Contact</th>
+                <th className="py-3.5 px-4">Role / Status</th>
                 <th className="py-3.5 px-4">Created Date</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -219,13 +302,13 @@ export default function StaffManagementView({ showToast }) {
             <tbody className="divide-y divide-line">
               {loading && staffList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-ink-secondary text-xs">
+                  <td colSpan={6} className="py-8 text-center text-ink-secondary text-xs">
                     Loading staff…
                   </td>
                 </tr>
               ) : loadError && staffList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center space-y-2">
+                  <td colSpan={6} className="py-8 text-center space-y-2">
                     <p className="text-xs font-bold text-navy">Unable to load staff</p>
                     <p className="text-xs text-ink-secondary">{loadError}</p>
                     <button
@@ -238,7 +321,7 @@ export default function StaffManagementView({ showToast }) {
                 </tr>
               ) : (
               <>
-              {activeStaff.map((staff) => (
+              {visibleActiveStaff.map((staff) => (
                 <tr key={staff.id} className="hover:bg-brand-tint transition">
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-3">
@@ -255,13 +338,17 @@ export default function StaffManagementView({ showToast }) {
                     {staff.email}
                   </td>
                   <td className="py-3.5 px-4">
-                    {renderRoleBadge(staff.role)}
+                    <span className="inline-flex items-center gap-1.5 text-ink-secondary"><Phone className="h-3.5 w-3.5" />{staff.phone || '—'}</span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex flex-col items-start gap-1.5">{renderRoleBadge(staff.role)}<span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Active</span></div>
                   </td>
                   <td className="py-3.5 px-4 text-ink-secondary">
-                    {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : 'Active'}
+                    {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : '—'}
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button type="button" onClick={() => openStaffDetails(staff)} disabled={detailsLoadingId !== null} className="p-1.5 rounded-lg bg-brand-tint hover:bg-brand-tintstrong text-navy disabled:opacity-50" title="View Staff" aria-label={`View ${staff.name}`}>{detailsLoadingId === staff.id ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}</button>
                       <button
                         onClick={() => openEditModal(staff)}
                         className="p-1.5 rounded-lg bg-brand-tint hover:bg-brand-tintstrong text-navy hover:text-navy transition"
@@ -273,8 +360,8 @@ export default function StaffManagementView({ showToast }) {
                         <button
                           onClick={() => setArchivingUser(staff)}
                           className="p-1.5 rounded-lg bg-brand-tint hover:bg-danger-tint text-ink-secondary hover:text-rose-400 transition"
-                          title="Archive Customer"
-                          aria-label={`Archive ${staff.name}`}
+                          title="Deactivate Staff Account"
+                          aria-label={`Deactivate ${staff.name}`}
                         >
                           <Archive className="w-3.5 h-3.5" />
                         </button>
@@ -285,8 +372,8 @@ export default function StaffManagementView({ showToast }) {
               ))}
               {activeStaff.length === 0 && !loading && !loadError && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-ink-secondary">
-                    No active staff members registered. Click "Add New Staff" to create one.
+                  <td colSpan={6} className="py-8 text-center text-ink-secondary">
+                    {query || roleFilter !== 'All' ? 'No staff match these filters.' : 'No active staff accounts are registered. Click "Add New Staff" to create one.'}
                   </td>
                 </tr>
               )}
@@ -295,6 +382,7 @@ export default function StaffManagementView({ showToast }) {
             </tbody>
           </table>
         </div>
+        <PaginationControls page={page} pageSize={pageSize} totalItems={activeStaff.length} onPageChange={nextPage => setPage(Math.max(1, Math.min(nextPage, activePageCount)))} />
       </div>
 
       {showArchived && (
@@ -302,44 +390,47 @@ export default function StaffManagementView({ showToast }) {
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="archived-customers-title"
+            aria-labelledby="inactive-staff-title"
             className="bg-white border border-line rounded-2xl w-full max-w-5xl max-h-[85vh] shadow-pop flex flex-col overflow-hidden"
           >
             <div className="flex items-center justify-between p-5 border-b border-line">
               <div>
-                <h3 id="archived-customers-title" className="text-lg font-bold text-navy">Archived Customers</h3>
-                <p className="text-xs text-ink-secondary mt-1">Restore archived accounts without losing their history.</p>
+                <h3 id="inactive-staff-title" className="text-lg font-bold text-navy">Inactive Staff Accounts ({archivedStaff.length})</h3>
+                <p className="text-xs text-ink-secondary mt-1">Activate inactive staff and cashier accounts without losing their history.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowArchived(false)}
                 className="p-2 rounded-xl text-ink-secondary hover:text-navy hover:bg-brand-tint transition"
-                aria-label="Close Archived Customers"
+                aria-label="Close inactive accounts"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="overflow-auto p-5">
               {archivedStaff.length === 0 ? (
-                <div className="py-12 text-center text-sm text-ink-secondary">No archived customers.</div>
+                <div className="py-12 text-center text-sm text-ink-secondary">{query || roleFilter !== 'All' ? 'No inactive staff match these filters.' : 'No inactive staff accounts.'}</div>
               ) : (
-                <table className="w-full min-w-[700px] text-left text-xs text-navy">
+                <>
+                <table className="w-full min-w-[900px] text-left text-xs text-navy">
                   <thead className="bg-brand-tint uppercase text-[11px] font-bold text-ink-secondary">
                     <tr>
-                      <th className="py-3 px-4 rounded-l-xl">Customer Name</th>
-                      <th className="py-3 px-4">Email / Login</th>
-                      <th className="py-3 px-4">Role Access</th>
+                      <th className="py-3 px-4 rounded-l-xl">Staff Name</th>
+                      <th className="py-3 px-4">Email</th>
+                      <th className="py-3 px-4">Contact</th>
+                      <th className="py-3 px-4">Role / Status</th>
                       <th className="py-3 px-4">Created Date</th>
-                      <th className="py-3 px-4">Archived Date</th>
+                      <th className="py-3 px-4">Deactivated Date</th>
                       <th className="py-3 px-4 text-right rounded-r-xl">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
-                    {archivedStaff.map((staff) => (
+                    {visibleInactiveStaff.map((staff) => (
                       <tr key={staff.id} className="hover:bg-brand-tint/60 transition">
                         <td className="py-3 px-4 font-semibold">{staff.name}</td>
                         <td className="py-3 px-4 font-mono break-all">{staff.email}</td>
-                        <td className="py-3 px-4">{renderRoleBadge(staff.role)}</td>
+                        <td className="py-3 px-4">{staff.phone || '—'}</td>
+                        <td className="py-3 px-4"><div className="flex flex-col items-start gap-1">{renderRoleBadge(staff.role)}<span className="rounded-full border border-line bg-brand-tint px-2 py-0.5 text-[10px] font-semibold text-ink-secondary">Inactive</span></div></td>
                         <td className="py-3 px-4 text-ink-secondary">
                           {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : '—'}
                         </td>
@@ -353,14 +444,38 @@ export default function StaffManagementView({ showToast }) {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 font-bold transition"
                           >
                             <RefreshCw className="w-3.5 h-3.5" />
-                            Restore
+                            Activate
                           </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <PaginationControls page={inactivePage} pageSize={pageSize} totalItems={archivedStaff.length} onPageChange={nextPage => setInactivePage(Math.max(1, Math.min(nextPage, inactivePageCount)))} />
+                </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedStaffDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg space-y-4 rounded-2xl border border-line bg-white p-6 shadow-pop">
+            <div className="flex items-start justify-between gap-4 border-b border-line pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-navy">{selectedStaffDetails.name}</h3>
+                <p className="text-xs text-ink-secondary">Staff account · ID {selectedStaffDetails.id}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedStaffDetails(null)} className="rounded-lg px-2 py-1 text-ink-secondary hover:bg-brand-tint" aria-label="Close staff details">✕</button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-line bg-brand-tint p-4 text-sm sm:grid-cols-2">
+              <p><span className="text-ink-secondary">Email:</span> <strong className="text-navy">{selectedStaffDetails.email}</strong></p>
+              <p><span className="text-ink-secondary">Contact:</span> <strong className="text-navy">{selectedStaffDetails.phone || '—'}</strong></p>
+              <p><span className="text-ink-secondary">Role:</span> <strong className="text-navy">{selectedStaffDetails.role}</strong></p>
+              <p><span className="text-ink-secondary">Status:</span> <strong className="text-navy">{selectedStaffDetails.status === 'inactive' ? 'Inactive' : 'Active'}</strong></p>
+              <p><span className="text-ink-secondary">Registered:</span> <strong className="text-navy">{selectedStaffDetails.created_at ? new Date(selectedStaffDetails.created_at).toLocaleString() : '—'}</strong></p>
+              {selectedStaffDetails.archived_at && <p><span className="text-ink-secondary">Deactivated:</span> <strong className="text-navy">{new Date(selectedStaffDetails.archived_at).toLocaleString()}</strong></p>}
             </div>
           </div>
         </div>
@@ -409,6 +524,11 @@ export default function StaffManagementView({ showToast }) {
               </div>
 
               <div>
+                <label className="block text-navy font-semibold mb-1">Contact Number</label>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} placeholder="09XX-XXX-XXXX" className="w-full bg-brand-tint border border-line rounded-xl px-3 py-2 text-navy focus:outline-none focus:border-brand-light" />
+              </div>
+
+              <div>
                 <label className="block text-navy font-semibold mb-1">Password *</label>
                 <input
                   type="password"
@@ -437,15 +557,17 @@ export default function StaffManagementView({ showToast }) {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
+                  disabled={formBusy}
                   className="px-4 py-2 rounded-xl bg-brand-tint text-navy hover:text-navy"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-hover text-white font-semibold shadow-card"
+                  disabled={formBusy}
+                  className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-hover text-white font-semibold shadow-card disabled:opacity-50"
                 >
-                  Save Staff Member
+                  {formBusy ? 'Saving…' : 'Save Staff Member'}
                 </button>
               </div>
             </form>
@@ -464,6 +586,7 @@ export default function StaffManagementView({ showToast }) {
               </h3>
               <button
                 onClick={() => setIsEditModalOpen(false)}
+                disabled={formBusy}
                 className="text-ink-secondary hover:text-navy"
               >
                 ✕
@@ -494,6 +617,11 @@ export default function StaffManagementView({ showToast }) {
               </div>
 
               <div>
+                <label className="block text-navy font-semibold mb-1">Contact Number</label>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} placeholder="09XX-XXX-XXXX" className="w-full bg-brand-tint border border-line rounded-xl px-3 py-2 text-navy focus:outline-none focus:border-brand-light" />
+              </div>
+
+              <div>
                 <label className="block text-navy font-semibold mb-1">Access Role *</label>
                 <select
                   value={role}
@@ -510,15 +638,17 @@ export default function StaffManagementView({ showToast }) {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
+                  disabled={formBusy}
                   className="px-4 py-2 rounded-xl bg-brand-tint text-navy hover:text-navy"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-hover text-white font-semibold shadow-card"
+                  disabled={formBusy}
+                  className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-hover text-white font-semibold shadow-card disabled:opacity-50"
                 >
-                  Update Staff
+                  {formBusy ? 'Saving…' : 'Update Staff'}
                 </button>
               </div>
             </form>
@@ -527,18 +657,20 @@ export default function StaffManagementView({ showToast }) {
       )}
       <ConfirmDialog
         open={!!archivingUser}
-        title="Archive customer"
-        message="Are you sure you want to archive this customer? Their information and transaction history will be preserved and can be restored later."
-        confirmLabel="Archive Customer"
+        title="Deactivate staff account"
+        message={archivingUser ? `Deactivate ${archivingUser.name}? They will lose access to the Staff/Cashier app. Previous order and activity records will be preserved.` : ''}
+        confirmLabel="Deactivate Account"
         danger
+        busy={accountActionBusy}
         onConfirm={handleArchiveStaff}
         onCancel={() => setArchivingUser(null)}
       />
       <ConfirmDialog
         open={!!restoringUser}
-        title="Restore customer"
-        message={restoringUser ? `Restore ${restoringUser.name}? Their account access will be re-enabled and their information and transaction history will remain unchanged.` : ''}
-        confirmLabel="Restore Customer"
+        title="Activate staff account"
+        message={restoringUser ? `Activate ${restoringUser.name}? They will be able to sign in again.` : ''}
+        confirmLabel="Activate Account"
+        busy={accountActionBusy}
         onConfirm={handleRestoreStaff}
         onCancel={() => setRestoringUser(null)}
       />
