@@ -23,7 +23,7 @@ function AccessDenied({ onLogout }) {
       <div>
         <h2 className="text-xl font-bold text-navy mb-2">Access Denied</h2>
         <p className="text-ink-secondary text-sm max-w-sm">
-          This portal is for Admin accounts only. Please use the <strong className="text-navy">Staff Mobile App</strong> to continue.
+          This portal is for active admin, staff, and cashier accounts. Please contact your administrator if you need access.
         </p>
       </div>
       <button
@@ -97,7 +97,7 @@ export default function ProtectedRoute() {
 
   if (!user) return <Navigate to="/login" replace />
 
-  if (user.role !== 'admin') {
+  if (!['admin', 'staff', 'cashier'].includes(user.role)) {
     const handleLogout = async () => {
       await logout()
       window.location.replace('/login')

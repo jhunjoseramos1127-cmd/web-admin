@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../api/client'
 import {
-  Settings, Sliders, Shield, Save, RefreshCw, Cpu, Droplets, Building2, Phone, MapPin, FileText, Lock, Layers
+  Settings, Sliders, Shield, Save, RefreshCw, Cpu, Droplets, Building2, Phone, MapPin, FileText, Lock, Layers, Thermometer, Flame
 } from 'lucide-react'
 
 export default function SettingsView({ showToast, onLimitsUpdated }) {
@@ -15,7 +15,10 @@ export default function SettingsView({ showToast, onLimitsUpdated }) {
   const [contactNumber, setContactNumber] = useState('+63 917 890 1234')
 
   // IoT & Sensor Thresholds
-  const [humidityThreshold, setHumidityThreshold] = useState(70.0)
+  const [humidityWarningThreshold, setHumidityWarningThreshold] = useState(40.0)
+  const [humidityAlertThreshold, setHumidityAlertThreshold] = useState(50.0)
+  const [temperatureAlertThreshold, setTemperatureAlertThreshold] = useState(50.0)
+  const [temperatureWarningThreshold, setTemperatureWarningThreshold] = useState(40.0)
   const [dryingTimeDefault, setDryingTimeDefault] = useState(60)
   const [systemStatus, setSystemStatus] = useState('Online')
   const [maxAdditionalCharges, setMaxAdditionalCharges] = useState('0')
@@ -43,7 +46,11 @@ export default function SettingsView({ showToast, onLimitsUpdated }) {
         if (d.business_name) setBusinessName(d.business_name)
         if (d.business_address) setBusinessAddress(d.business_address)
         if (d.contact_number) setContactNumber(d.contact_number)
-        if (d.humidity_threshold) setHumidityThreshold(d.humidity_threshold)
+        if (d.humidity_warning_threshold !== undefined) setHumidityWarningThreshold(d.humidity_warning_threshold)
+        else if (d.humidity_threshold !== undefined) setHumidityWarningThreshold(d.humidity_threshold)
+        if (d.humidity_alert_threshold !== undefined) setHumidityAlertThreshold(d.humidity_alert_threshold)
+        if (d.temperature_alert_threshold !== undefined) setTemperatureAlertThreshold(d.temperature_alert_threshold)
+        if (d.temperature_warning_threshold !== undefined) setTemperatureWarningThreshold(d.temperature_warning_threshold)
         if (d.drying_time_default) setDryingTimeDefault(d.drying_time_default)
         if (d.system_status) setSystemStatus(d.system_status)
         if (d.max_additional_charges !== undefined) setMaxAdditionalCharges(String(d.max_additional_charges))
@@ -76,13 +83,22 @@ export default function SettingsView({ showToast, onLimitsUpdated }) {
 
   const handleSaveSettings = async (e) => {
     e.preventDefault()
+    if (Number(humidityAlertThreshold) <= Number(humidityWarningThreshold)) {
+      showToast('Humidity alert threshold must be higher than its warning threshold.', 'error')
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
         business_name: businessName,
         business_address: businessAddress,
         contact_number: contactNumber,
-        humidity_threshold: Number(humidityThreshold),
+        humidity_threshold: Number(humidityWarningThreshold),
+        humidity_warning_threshold: Number(humidityWarningThreshold),
+        humidity_alert_threshold: Number(humidityAlertThreshold),
+        temperature_alert_threshold: Number(temperatureAlertThreshold),
+        temperature_warning_threshold: Number(temperatureWarningThreshold),
         drying_time_default: Number(dryingTimeDefault),
         system_status: systemStatus,
         max_additional_charges: Number(maxAdditionalCharges),
@@ -158,7 +174,7 @@ export default function SettingsView({ showToast, onLimitsUpdated }) {
             <h2 className="text-xl font-bold text-navy">System Settings & IoT Thresholds</h2>
           </div>
           <p className="text-xs text-ink-secondary mt-1">
-            Configure the humidity warning threshold and store information.
+            Configure humidity and temperature warning/alert thresholds and store information.
           </p>
         </div>
 
@@ -218,7 +234,7 @@ export default function SettingsView({ showToast, onLimitsUpdated }) {
           <div className="flex items-center gap-2.5 border-b border-line pb-3">
             <Cpu className="w-5 h-5 text-navy" />
             <h3 className="text-sm font-bold text-navy uppercase tracking-wider">
-              ESP32 Humidity Threshold
+              ESP32 Humidity & Temperature Thresholds
             </h3>
           </div>
 
@@ -227,18 +243,74 @@ export default function SettingsView({ showToast, onLimitsUpdated }) {
             <div className="space-y-1.5 bg-brand-tint p-4 rounded-xl border border-line">
               <label className="flex items-center gap-2 font-bold text-amber-400">
                 <Droplets className="w-4 h-4" />
-                Warning Humidity Threshold (%)
+                Warning Humidity Threshold (% RH)
               </label>
               <input
                 type="number"
                 step="0.5"
-                min="40"
+                min="30"
                 max="95"
-                value={humidityThreshold}
-                onChange={(e) => setHumidityThreshold(e.target.value)}
+                required
+                value={humidityWarningThreshold}
+                onChange={(e) => setHumidityWarningThreshold(e.target.value)}
                 className="w-full bg-white border border-line rounded-lg px-3 py-2 text-navy font-mono focus:outline-none focus:border-brand-light"
               />
-              <p className="text-[11px] text-ink-secondary">Default: 70%. A warning is sent once when humidity crosses this threshold.</p>
+              <p className="text-[11px] text-ink-secondary">Default: 40% RH. Starts a warning when humidity reaches this level.</p>
+            </div>
+
+            {/* Alert Humidity */}
+            <div className="space-y-1.5 bg-brand-tint p-4 rounded-xl border border-line">
+              <label className="flex items-center gap-2 font-bold text-rose-600">
+                <Flame className="w-4 h-4 text-rose-500" />
+                Alert Humidity Threshold (% RH)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="30"
+                max="95"
+                required
+                value={humidityAlertThreshold}
+                onChange={(e) => setHumidityAlertThreshold(e.target.value)}
+                className="w-full bg-white border border-line rounded-lg px-3 py-2 text-navy font-mono focus:outline-none focus:border-brand-light"
+              />
+              <p className="text-[11px] text-ink-secondary">Default: 50% RH. Sends a critical alert; must be above the warning threshold.</p>
+            </div>
+
+            {/* Warning Temperature Threshold */}
+            <div className="space-y-1.5 bg-brand-tint p-4 rounded-xl border border-line">
+              <label className="flex items-center gap-2 font-bold text-navy">
+                <Thermometer className="w-4 h-4 text-amber-500" />
+                Warning Temperature Threshold (°C)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="20"
+                max="90"
+                value={temperatureWarningThreshold}
+                onChange={(e) => setTemperatureWarningThreshold(e.target.value)}
+                className="w-full bg-white border border-line rounded-lg px-3 py-2 text-navy font-mono focus:outline-none focus:border-brand-light"
+              />
+              <p className="text-[11px] text-ink-secondary">Default: 40°C. Status turns to <strong>WARNING</strong> and notifies staff and web-admin.</p>
+            </div>
+
+            {/* Alert Temperature Threshold */}
+            <div className="space-y-1.5 bg-brand-tint p-4 rounded-xl border border-line">
+              <label className="flex items-center gap-2 font-bold text-navy">
+                <Flame className="w-4 h-4 text-rose-500" />
+                Alert Temperature Threshold (°C)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="30"
+                max="100"
+                value={temperatureAlertThreshold}
+                onChange={(e) => setTemperatureAlertThreshold(e.target.value)}
+                className="w-full bg-white border border-line rounded-lg px-3 py-2 text-navy font-mono focus:outline-none focus:border-brand-light"
+              />
+              <p className="text-[11px] text-ink-secondary">Default: 50°C. Status turns to <strong>ALERT (Critical)</strong> and immediately triggers high-priority notifications.</p>
             </div>
 
             {/* Default Drying Duration */}

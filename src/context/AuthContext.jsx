@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import api from '../api/client'
 
 const AuthContext = createContext(null)
+const WEB_ADMIN_ROLES = ['admin', 'staff', 'cashier']
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -23,7 +24,7 @@ export function AuthProvider({ children }) {
       .then((res) => {
         const u = res.data?.data?.user || res.data?.user || res.data?.data
         if (!u) throw new Error('No user in response')
-        if (u.role !== 'admin') throw new Error('Not an admin')
+        if (!WEB_ADMIN_ROLES.includes(u.role)) throw new Error('Not authorized for web-admin')
         setUser(u)
         setToken(storedToken)
       })

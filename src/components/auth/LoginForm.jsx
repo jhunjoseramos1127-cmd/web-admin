@@ -148,8 +148,8 @@ export default function LoginForm() {
         notify('Invalid server response. Please try again.', 'error')
         return
       }
-      if (data.user.role !== 'admin') {
-        notify('You are not authorized to access the admin panel.', 'error')
+      if (!['admin', 'staff', 'cashier'].includes(data.user.role)) {
+        notify('This account is not authorized to access the operations portal.', 'error')
         return
       }
 
@@ -218,10 +218,10 @@ export default function LoginForm() {
 
       <div className="mb-5 text-center">
         <h2 className="text-[26px] font-bold leading-tight tracking-tight text-[#0A4D68]">
-          Welcome Back, Admin!
+          Welcome Back!
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Log in to manage FreshSpin Laundry operations.
+          Log in with your admin, staff, or cashier account to continue.
         </p>
       </div>
 
@@ -236,7 +236,7 @@ export default function LoginForm() {
             setFieldErrors((current) => ({ ...current, email: undefined }))
             if (notification.type === 'error') notify(RESET_INFO, 'info')
           }}
-          placeholder="admin@freshspin.test"
+          placeholder="you@example.com"
           icon={Mail}
           error={fieldErrors.email}
           disabled={submitting || isLocked}

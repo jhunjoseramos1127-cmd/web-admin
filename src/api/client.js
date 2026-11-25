@@ -62,9 +62,11 @@ api.interceptors.response.use(
         window.location.replace('/login')
       }
     }
+
     const message = err.response?.status === 401 && isLogin
       ? err.response.data?.message || 'Invalid email or password. Please try again.'
       : getUserErrorMessage(err)
+
     err.userMessage = message
     err.message = message
     if (err.response) {

@@ -4,7 +4,7 @@ import api from '../api/client'
 import SupportInbox from './SupportInbox'
 import {
   Bell, AlertTriangle, ShieldAlert, Info, CheckCircle2, Clock, Droplets,
-  RefreshCw, CheckCheck, PackageOpen, Trash2, CreditCard, RotateCcw
+  RefreshCw, CheckCheck, PackageOpen, Trash2, CreditCard, RotateCcw, Thermometer
 } from 'lucide-react'
 
 const isSupportAlert = (alert) =>
@@ -173,6 +173,7 @@ export default function AlertsView({ showToast, onUnreadCountChange, onSupportUn
 
   const renderAlertIcon = (alert) => {
     const type = alert.type?.toUpperCase() || ''
+    if (type.includes('TEMP')) return <Thermometer className="w-5 h-5 text-rose-500" />
     if (type.includes('PAYMENT')) return <CreditCard className="w-5 h-5" />
     if (type.includes('HUMIDITY') || type.includes('ESP32') || alert.device_id) {
       return <Droplets className="w-5 h-5" />
@@ -215,7 +216,7 @@ export default function AlertsView({ showToast, onUnreadCountChange, onSupportUn
             )}
           </div>
           <p className="text-xs text-ink-secondary mt-1">
-            Humidity threshold warnings, ESP32 telemetry disruptions, and low-inventory warnings.
+            Temperature warnings and critical alerts, humidity thresholds, ESP32 disruptions, and low inventory.
           </p>
         </div>
 
@@ -411,7 +412,7 @@ export default function AlertsView({ showToast, onUnreadCountChange, onSupportUn
             <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
             <h4 className="text-base font-bold text-navy">{showDeleted ? 'No deleted alerts' : 'No active alerts found'}</h4>
             <p className="text-xs text-ink-secondary">
-              {showDeleted ? 'Deleted notifications will appear here and can be restored to the active inbox.' : 'All humidity sensors, inventory thresholds, and operational stages are running normally.'}
+              {showDeleted ? 'Deleted notifications will appear here and can be restored to the active inbox.' : 'No active temperature, humidity, sensor, or inventory alerts.'}
             </p>
           </div>
         )}

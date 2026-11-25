@@ -22,7 +22,6 @@ import AuthSplitScreen from './components/auth/AuthSplitScreen'
 import PasswordRecoveryPage from './components/auth/PasswordRecoveryPage'
 import AppLayout from './components/AppLayout'
 import LoyaltyView from './components/LoyaltyView'
-import InvoizCustomers from './components/InvoizCustomers'
 import ProtectedRoute from './components/ProtectedRoute'
 import { Toast, ConfirmDialog, PaginationControls } from './components/shared'
 import ExpandableSearch from './components/ExpandableSearch'
@@ -56,6 +55,11 @@ const paymentMethodChip = (method) =>
   (PAYMENT_METHODS.find((m) => m.value === method) || PAYMENT_METHODS[PAYMENT_METHODS.length - 1]).chip
 const isSupportAlert = (alert) =>
   alert?.type?.toUpperCase() === 'SUPPORT' || alert?.support_ticket_id != null
+
+function AdminOnly({ children }) {
+  const { user } = useAuth()
+  return user?.role === 'admin' ? children : <Navigate to="/" replace />
+}
 
 const STANDARD_KG_SERVICE_NAME = 'Wash, Dry & Fold'
 const MAX_ORDER_WEIGHT_KG = 999.99
@@ -155,7 +159,10 @@ function MainApp() {
     temperature: null,
     temperature_unit: '°C',
     status: 'UNAVAILABLE',
+    temperature_status: 'NORMAL',
     threshold: 70.0,
+    temperature_alert_threshold: 50.0,
+    temperature_warning_threshold: 40.0,
     device_id: 'FRESHSPIN-ESP32-01',
     location: 'Drying Area #1 (Victoria, Laguna)',
     device_status: 'Humidity data temporarily unavailable',
@@ -1007,9 +1014,10 @@ function MainApp() {
           </button>
         </div>
       )}
-      <AppLayout unreadCount={unreadAlerts} supportUnreadCount={unreadSupport} humidityWarning={latestHumidity.status === 'WARNING'}>
+      <AppLayout unreadCount={unreadAlerts} supportUnreadCount={unreadSupport} humidityWarning={['WARNING', 'ALERT'].includes(latestHumidity.status)}>
         <Routes>
           <Route path="/" element={<DashboardPage {...sharedProps} />} />
+          <Route path="/index.html" element={<Navigate to="/" replace />} />
           <Route path="/orders" element={<OrdersPage {...sharedProps} />} />
           <Route path="/payments" element={<PaymentsPage {...sharedProps} />} />
           <Route path="/loyalty" element={<LoyaltyView showToast={showToast} />} />
@@ -1030,8 +1038,8 @@ function MainApp() {
             }
           />
           <Route path="/support" element={<SupportInbox showToast={showToast} onUnreadCountChange={setUnreadSupport} />} />
-          <Route path="/users" element={<StaffManagementView showToast={showToast} />} />
-          <Route path="/settings" element={<SettingsView showToast={showToast} onLimitsUpdated={setOrderPricingLimits} />} />
+          <Route path="/users" element={<AdminOnly><StaffManagementView showToast={showToast} /></AdminOnly>} />
+          <Route path="/settings" element={<AdminOnly><SettingsView showToast={showToast} onLimitsUpdated={setOrderPricingLimits} /></AdminOnly>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
 
@@ -2295,6 +2303,45 @@ function ServicesPage(p) {
 
 // ─── Humidity Page ────────────────────────────────────────────────────────────
 function HumidityPage(p) {
+  const humidityWarningThreshold = Number(
+    p.latestHumidity.humidity_warning_threshold ?? p.latestHumidity.threshold ?? 40,
+  )
+  const humidityAlertThreshold = Number(p.latestHumidity.humidity_alert_threshold ?? 50)
+  const temperatureWarningThreshold = Number(p.latestHumidity.temperature_warning_threshold ?? 40)
+  const temperatureAlertThreshold = Number(p.latestHumidity.temperature_alert_threshold ?? 50)
+  const getHumidityStatus = (humidity) => {
+    if (humidity === null || humidity === undefined || !Number.isFinite(Number(humidity))) {
+      return 'UNAVAILABLE'
+    }
+
+    const value = Number(humidity)
+    if (value >= humidityAlertThreshold) return 'ALERT'
+    if (value >= humidityWarningThreshold) return 'WARNING'
+    return 'NORMAL'
+  }
+  const getTemperatureStatus = (temperature) => {
+    if (temperature === null || temperature === undefined || !Number.isFinite(Number(temperature))) {
+      return 'UNAVAILABLE'
+    }
+
+    const value = Number(temperature)
+    if (value >= temperatureAlertThreshold) return 'ALERT'
+    if (value >= temperatureWarningThreshold) return 'WARNING'
+    return 'NORMAL'
+  }
+  const currentTemperatureStatus = p.latestHumidity.is_online
+    ? getTemperatureStatus(p.latestHumidity.temperature)
+    : 'UNAVAILABLE'
+  const currentHumidityStatus = p.latestHumidity.is_online
+    ? getHumidityStatus(p.latestHumidity.humidity)
+    : 'UNAVAILABLE'
+  const statusClasses = {
+    ALERT: 'bg-rose-100 text-rose-700',
+    WARNING: 'bg-amber-100 text-amber-700',
+    NORMAL: 'bg-emerald-100 text-emerald-700',
+    UNAVAILABLE: 'bg-slate-100 text-slate-500',
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -2319,19 +2366,53 @@ function HumidityPage(p) {
           <span className="text-xs text-ink-secondary uppercase font-semibold flex items-center gap-1">
             <Thermometer className="w-3.5 h-3.5 text-amber-500" />Current Temperature
           </span>
-          <div className="text-2xl font-black text-navy mt-1">
-            {p.latestHumidity.is_online && p.latestHumidity.temperature !== null ? `${p.latestHumidity.temperature} °C` : '—'}
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`text-2xl font-black ${
+              p.latestHumidity.temperature_status === 'ALERT'
+                ? 'text-rose-600'
+                : p.latestHumidity.temperature_status === 'WARNING'
+                ? 'text-amber-500'
+                : 'text-navy'
+            }`}>
+              {p.latestHumidity.is_online && p.latestHumidity.temperature !== null ? `${p.latestHumidity.temperature} °C` : '—'}
+            </span>
+            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+              currentTemperatureStatus === 'ALERT'
+                ? 'bg-rose-500/10 text-rose-500 border-rose-500/30 animate-pulse'
+                : currentTemperatureStatus === 'WARNING'
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                : currentTemperatureStatus === 'NORMAL'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-slate-100 text-slate-500 border-slate-200'
+            }`}>
+              {currentTemperatureStatus}
+            </span>
           </div>
-          <span className="text-[10px] text-ink-secondary">DHT11 GPIO 4</span>
+          <span className="text-[10px] text-ink-secondary block">
+            Warning ≥ {temperatureWarningThreshold}°C • Alert ≥ {temperatureAlertThreshold}°C
+          </span>
         </div>
         <div>
           <span className="text-xs text-ink-secondary uppercase font-semibold flex items-center gap-1">
             <Droplets className="w-3.5 h-3.5 text-blue-500" />Current Humidity
           </span>
-          <div className={`text-2xl font-black mt-1 ${p.latestHumidity.status === 'WARNING' ? 'text-rose-500' : 'text-navy'}`}>
-            {p.latestHumidity.is_online && p.latestHumidity.humidity !== null ? `${p.latestHumidity.humidity} %` : '—'}
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`text-2xl font-black ${
+              currentHumidityStatus === 'ALERT'
+                ? 'text-rose-600'
+                : currentHumidityStatus === 'WARNING'
+                ? 'text-amber-500'
+                : 'text-navy'
+            }`}>
+              {p.latestHumidity.is_online && p.latestHumidity.humidity !== null ? `${p.latestHumidity.humidity} %` : '—'}
+            </span>
+            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${statusClasses[currentHumidityStatus]}`}>
+              {currentHumidityStatus}
+            </span>
           </div>
-          <span className="text-[10px] text-ink-secondary">Warning at ≥ {p.latestHumidity.threshold ?? 70}%</span>
+          <span className="text-[10px] text-ink-secondary">
+            Warning ≥ {humidityWarningThreshold}% RH • Alert ≥ {humidityAlertThreshold}% RH
+          </span>
         </div>
         <div>
           <span className="text-xs text-ink-secondary uppercase font-semibold">Hardware Status</span>
@@ -2341,7 +2422,11 @@ function HumidityPage(p) {
               {p.latestHumidity.is_online ? 'ESP32 Connected' : 'Hardware Offline'}
             </span>
           </div>
-          <span className="text-[10px] text-ink-secondary block mt-1">{p.latestHumidity.is_online ? `Reading: ${p.latestHumidity.status}` : 'No recent sensor reading received'}</span>
+          <span className="text-[10px] text-ink-secondary block mt-1">
+            {p.latestHumidity.is_online
+              ? `Humidity: ${currentHumidityStatus} • Temperature: ${currentTemperatureStatus}`
+              : 'No recent sensor reading received'}
+          </span>
         </div>
         <div>
           <span className="text-xs text-ink-secondary uppercase font-semibold">Last Sensor Update</span>
@@ -2372,7 +2457,10 @@ function HumidityPage(p) {
                 <YAxis domain={['auto', 'auto']} stroke="var(--navy)" fontSize={11} />
                 <Tooltip contentStyle={{ backgroundColor: 'var(--white)', borderColor: 'var(--border)', borderRadius: '0.75rem', color: 'var(--navy)' }} />
                 <Legend />
-                <ReferenceLine y={p.latestHumidity.threshold ?? 70} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: `HUMIDITY WARNING (${p.latestHumidity.threshold ?? 70}%)`, fill: 'var(--danger)', fontSize: 10 }} />
+                <ReferenceLine y={humidityWarningThreshold} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: `HUMIDITY WARNING (${humidityWarningThreshold}% RH)`, fill: '#f59e0b', fontSize: 10 }} />
+                <ReferenceLine y={humidityAlertThreshold} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: `HUMIDITY ALERT (${humidityAlertThreshold}% RH)`, fill: 'var(--danger)', fontSize: 10 }} />
+                <ReferenceLine y={p.latestHumidity.temperature_alert_threshold ?? 50} stroke="var(--danger)" strokeDasharray="3 3" label={{ value: `TEMP ALERT (${p.latestHumidity.temperature_alert_threshold ?? 50}°C)`, fill: 'var(--danger)', fontSize: 10 }} />
+                <ReferenceLine y={p.latestHumidity.temperature_warning_threshold ?? 40} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: `TEMP WARN (${p.latestHumidity.temperature_warning_threshold ?? 40}°C)`, fill: '#f59e0b', fontSize: 10 }} />
                 <Line type="monotone" dataKey="humidity" stroke="var(--blue)" strokeWidth={3} dot={{ fill: 'var(--blue)', r: 3 }} name="Humidity (% RH)" isAnimationActive={false} />
                 <Line type="monotone" dataKey="temperature" stroke="#0A4D68" strokeWidth={3} strokeDasharray="6 3" dot={{ fill: '#0A4D68', r: 3 }} name="Temperature (°C)" isAnimationActive={false} />
               </LineChart>
@@ -2391,22 +2479,32 @@ function HumidityPage(p) {
                   <th className="px-3 py-2">Timestamp</th>
                   <th className="px-3 py-2">Temperature</th>
                   <th className="px-3 py-2">Humidity</th>
-                  <th className="px-3 py-2">Threshold Status</th>
+                  <th className="px-3 py-2">Humidity Status</th>
+                  <th className="px-3 py-2">Temperature Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/40">
-                {p.humidityHistory.slice(-10).reverse().map((reading, idx) => (
-                  <tr key={idx} className="hover:bg-brand-tint/30 transition">
-                    <td className="px-3 py-2 font-mono text-ink-secondary">{reading.time}</td>
-                    <td className="px-3 py-2 font-bold text-amber-600">{reading.temperature !== null ? `${reading.temperature} °C` : '—'}</td>
-                    <td className="px-3 py-2 font-bold text-navy">{reading.humidity !== null ? `${reading.humidity} %` : '—'}</td>
-                    <td className="px-3 py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${reading.status === 'WARNING' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {reading.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {p.humidityHistory.slice(-10).reverse().map((reading, idx) => {
+                  const readingHumidityStatus = getHumidityStatus(reading.humidity)
+                  const readingTemperatureStatus = getTemperatureStatus(reading.temperature)
+                  return (
+                    <tr key={reading.id ?? idx} className="hover:bg-brand-tint/30 transition">
+                      <td className="px-3 py-2 font-mono text-ink-secondary">{reading.time}</td>
+                      <td className="px-3 py-2 font-bold text-amber-600">{reading.temperature !== null ? `${reading.temperature} °C` : '—'}</td>
+                      <td className="px-3 py-2 font-bold text-navy">{reading.humidity !== null ? `${reading.humidity} %` : '—'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClasses[readingHumidityStatus]}`}>
+                          {readingHumidityStatus}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClasses[readingTemperatureStatus]}`}>
+                          {readingTemperatureStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -2844,8 +2942,9 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<PasswordRecoveryPage />} />
       </Route>
-      <Route path="/invoiz" element={<InvoizCustomers />} />
+      <Route path="/index.html" element={<Navigate to="/" replace />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="/invoiz" element={<Navigate to="/customers" replace />} />
         <Route path="/*" element={<MainApp />} />
       </Route>
     </Routes>

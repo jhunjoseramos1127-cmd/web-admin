@@ -29,24 +29,24 @@ const NAV_GROUPS = [
   {
     title: 'Sensor & Stock',
     items: [
-      { to: '/humidity', label: 'Humidity', icon: Droplets },
+      { to: '/humidity', label: 'Humidity', icon: Droplets, authorizedRoles: ['admin', 'staff'] },
       { to: '/inventory', label: 'Inventory', icon: Box },
     ],
   },
   {
     title: 'Insights',
     items: [
-      { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+      { to: '/analytics', label: 'Analytics', icon: BarChart3, authorizedRoles: ['admin', 'staff'] },
       { to: '/reports', label: 'Reports', icon: FileBarChart },
     ],
   },
   {
     title: 'Administration',
     items: [
-      { to: '/users', label: 'Users', icon: ShieldAlert },
+      { to: '/users', label: 'Users', icon: ShieldAlert, authorizedRoles: ['admin'] },
       { to: '/notifications', label: 'Notifications', icon: Bell },
-      { to: '/support', label: 'Support Inbox', icon: MessageCircle },
-      { to: '/settings', label: 'Settings', icon: Settings },
+      { to: '/support', label: 'Support Inbox', icon: MessageCircle, authorizedRoles: ['admin', 'staff'] },
+      { to: '/settings', label: 'Settings', icon: Settings, authorizedRoles: ['admin'] },
     ],
   },
 ]
