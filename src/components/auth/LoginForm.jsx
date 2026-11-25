@@ -138,11 +138,6 @@ export default function LoginForm() {
     }
 
     sessionStorage.setItem(LOCKOUT_EMAIL_KEY, email.trim())
-    if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL?.trim()) {
-      notify('Admin API URL is not configured. Set VITE_API_BASE_URL in Render and redeploy.', 'error')
-      return
-    }
-
     notify('Authenticating your account...', 'info')
     setSubmitting(true)
     try {

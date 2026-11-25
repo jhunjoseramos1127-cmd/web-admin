@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+export const ADMIN_API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim()
+  || (import.meta.env.PROD ? 'https://freshspin-backend.onrender.com' : '/')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/',
+  baseURL: ADMIN_API_BASE_URL,
   timeout: 15000,
 })
 

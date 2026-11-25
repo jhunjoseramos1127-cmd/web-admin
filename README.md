@@ -16,11 +16,12 @@ To configure the service manually, choose the Node runtime, set the build
 command to `npm ci --include=dev && npm run build`, and the start command to
 `npm start`.
 
-The Render Blueprint prompts for `VITE_API_BASE_URL`. Set it to the deployed
-backend origin (for example, `https://api.example.com`, without the `/api`
-path). Vite embeds this value into the public frontend at build time, so it
-must not contain secrets; redeploy after changing it. Configure the backend's
-`CORS_ALLOWED_ORIGINS` to allow requests from the Render site origin.
+The Render Blueprint uses `https://freshspin-backend.onrender.com` for
+`VITE_API_BASE_URL` by default. Override it with the deployed backend origin
+(without the `/api` path) if using a different backend. The frontend also
+defaults to this API in production builds when the variable is omitted. Vite
+embeds this public URL into the frontend; it must not contain secrets.
+The backend must allow the Render site origin in `CORS_ALLOWED_ORIGINS`.
 
 ## Local development
 
