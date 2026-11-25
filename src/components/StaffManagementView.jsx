@@ -103,12 +103,16 @@ export default function StaffManagementView({ showToast }) {
     formInFlight.current = true
     setFormBusy(true)
     try {
-      const res = await api.put(`/api/staff/${selectedStaff.id}`, {
+      const payload = {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim() || null,
         role
-      })
+      }
+      if (password.trim()) {
+        payload.password = password.trim()
+      }
+      const res = await api.put(`/api/staff/${selectedStaff.id}`, payload)
 
       if (res?.data?.success) {
         showToast(`Staff member "${name}" updated successfully!`)
@@ -179,6 +183,7 @@ export default function StaffManagementView({ showToast }) {
     setName(staff.name)
     setEmail(staff.email)
     setPhone(staff.phone || '')
+    setPassword('')
     setRole(staff.role)
     setIsEditModalOpen(true)
   }
@@ -619,6 +624,17 @@ export default function StaffManagementView({ showToast }) {
               <div>
                 <label className="block text-navy font-semibold mb-1">Contact Number</label>
                 <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} placeholder="09XX-XXX-XXXX" className="w-full bg-brand-tint border border-line rounded-xl px-3 py-2 text-navy focus:outline-none focus:border-brand-light" />
+              </div>
+
+              <div>
+                <label className="block text-navy font-semibold mb-1">New Password (leave blank to keep current)</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="w-full bg-brand-tint border border-line rounded-xl px-3 py-2 text-navy focus:outline-none focus:border-brand-light"
+                />
               </div>
 
               <div>
