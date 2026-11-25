@@ -119,6 +119,15 @@ const ADMIN_ORDER_STATUSES = [
 // ─── Not Found Page ───────────────────────────────────────────────────────────
 function NotFound() {
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    const raw = (location.pathname || '').toLowerCase()
+    if (raw === '/index.html' || raw.endsWith('/index.html') || raw === '/dashboard') {
+      navigate('/', { replace: true })
+    }
+  }, [location.pathname, navigate])
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6">
       <div className="text-8xl font-black text-line">404</div>
@@ -1017,12 +1026,15 @@ function MainApp() {
       <AppLayout unreadCount={unreadAlerts} supportUnreadCount={unreadSupport} humidityWarning={['WARNING', 'ALERT'].includes(latestHumidity.status)}>
         <Routes>
           <Route path="/" element={<DashboardPage {...sharedProps} />} />
+          <Route path="/dashboard" element={<DashboardPage {...sharedProps} />} />
           <Route path="/index.html" element={<Navigate to="/" replace />} />
+          <Route path="index.html" element={<Navigate to="/" replace />} />
           <Route path="/orders" element={<OrdersPage {...sharedProps} />} />
           <Route path="/payments" element={<PaymentsPage {...sharedProps} />} />
           <Route path="/loyalty" element={<LoyaltyView showToast={showToast} />} />
           <Route path="/customers" element={<CustomersPage {...sharedProps} />} />
           <Route path="/services" element={<ServicesPage {...sharedProps} />} />
+          <Route path="/pricing" element={<Navigate to="/services" replace />} />
           <Route path="/humidity" element={<HumidityPage {...sharedProps} />} />
           <Route path="/inventory" element={<InventoryView showToast={showToast} isAdmin={user?.role === 'admin'} />} />
           <Route path="/analytics" element={<AnalyticsView analyticsData={dashboardData?.analytics} latestHumidity={latestHumidity} humidityHistory={humidityHistory} metrics={metrics} orders={orders} onRefresh={fetchAllData} loading={loading} />} />
@@ -1037,8 +1049,10 @@ function MainApp() {
               />
             }
           />
+          <Route path="/alerts" element={<Navigate to="/notifications" replace />} />
           <Route path="/support" element={<SupportInbox showToast={showToast} onUnreadCountChange={setUnreadSupport} />} />
           <Route path="/users" element={<AdminOnly><StaffManagementView showToast={showToast} /></AdminOnly>} />
+          <Route path="/staff" element={<Navigate to="/users" replace />} />
           <Route path="/settings" element={<AdminOnly><SettingsView showToast={showToast} onLimitsUpdated={setOrderPricingLimits} /></AdminOnly>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -2943,6 +2957,7 @@ export default function App() {
         <Route path="/forgot-password" element={<PasswordRecoveryPage />} />
       </Route>
       <Route path="/index.html" element={<Navigate to="/" replace />} />
+      <Route path="/index.html/*" element={<Navigate to="/" replace />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/invoiz" element={<Navigate to="/customers" replace />} />
         <Route path="/*" element={<MainApp />} />
