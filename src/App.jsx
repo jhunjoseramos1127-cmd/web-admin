@@ -1926,6 +1926,11 @@ function CustomersPage(p) {
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [loadingCustomerId, setLoadingCustomerId] = useState(null)
   const pageSize = 8
+  const formatLastLogin = (user) => {
+    if (!user) return 'No account'
+    if (!user.last_successful_login_at) return 'No login recorded'
+    return new Date(user.last_successful_login_at).toLocaleString()
+  }
   const filtered = p.customers.filter(c => {
     const s = p.customerSearch.toLowerCase().trim()
     const matchesSearch = !s || `${c.first_name} ${c.last_name}`.toLowerCase().includes(s) || c.phone?.includes(s) || c.email?.toLowerCase().includes(s) || c.customer_code?.toLowerCase().includes(s)
@@ -2029,6 +2034,7 @@ function CustomersPage(p) {
                 <p className="truncate">📍 {c.address || 'No address on file'}</p>
                 <p className="truncate">✉️ {c.email || c.user?.email || 'No email on file'}</p>
                 <p>Registered: {(c.user?.created_at || c.created_at) ? new Date(c.user?.created_at || c.created_at).toLocaleDateString() : '—'}</p>
+                <p>Last login: {formatLastLogin(c.user)}</p>
                 {archived && <p>Deactivated: {c.archived_at ? new Date(c.archived_at).toLocaleDateString() : '—'}</p>}
               </div>
               <div className="pt-3 border-t border-line flex justify-between text-xs font-semibold">
@@ -2069,6 +2075,7 @@ function CustomersPage(p) {
                       <p><span className="text-ink-secondary">Contact:</span> <strong className="text-navy">{selectedCustomer.phone || selectedCustomer.user?.phone || '—'}</strong></p>
                       <p><span className="text-ink-secondary">Address:</span> <strong className="text-navy">{selectedCustomer.address || '—'}</strong></p>
                       <p><span className="text-ink-secondary">Registered:</span> <strong className="text-navy">{(selectedCustomer.user?.created_at || selectedCustomer.created_at) ? new Date(selectedCustomer.user?.created_at || selectedCustomer.created_at).toLocaleString() : '—'}</strong></p>
+                      {selectedCustomer.user && <p><span className="text-ink-secondary">Last login:</span> <strong className="text-navy">{formatLastLogin(selectedCustomer.user)}</strong></p>}
                       {selectedCustomer.user && <p><span className="text-ink-secondary">Account role:</span> <strong className="text-navy">{selectedCustomer.user.role}</strong></p>}
                       {selectedCustomer.notes && <p className="sm:col-span-2"><span className="text-ink-secondary">Notes:</span> <strong className="text-navy">{selectedCustomer.notes}</strong></p>}
                     </div>
