@@ -202,6 +202,8 @@ function MainApp() {
   const [newOrderItems, setNewOrderItems] = useState([{ service_id: 1, quantity: 0, notes: '' }])
   const [paymentOrderId, setPaymentOrderId] = useState('')
   const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentAmountTendered, setPaymentAmountTendered] = useState('')
+  const [paymentHasOnePeso, setPaymentHasOnePeso] = useState(true)
   const [paymentMethod, setPaymentMethod] = useState('Cash')
   const [paymentReference, setPaymentReference] = useState('')
   const [paymentOtherMethod, setPaymentOtherMethod] = useState('')
@@ -824,6 +826,29 @@ function MainApp() {
       if (!paymentReference.trim()) errors.reference = `A transaction reference number is required for ${paymentMethod}.`
     }
     if (paymentMethod === 'Other' && !paymentOtherMethod.trim()) errors.otherMethod = 'Specify the payment method.'
+    if (paymentMethod === 'Cash') {
+      const tendered = paymentAmountTendered === '' ? Number(paymentAmount) : Number(paymentAmountTendered)
+      const amtDue = Number(paymentAmount)
+      if (isNaN(tendered) || tendered < amtDue) {
+        errors.tendered = 'Payment amount is insufficient.'
+      } else {
+        const change = tendered - amtDue
+        if (change > 0.001) {
+          const denoms = paymentHasOnePeso ? [1000, 500, 200, 100, 50, 20, 10, 5, 1] : [1000, 500, 200, 100, 50, 20, 10, 5]
+          let remCents = Math.round(change * 100)
+          for (const d of denoms) {
+            const dCents = d * 100
+            if (remCents >= dCents) {
+              const count = Math.floor(remCents / dCents)
+              remCents -= count * dCents
+            }
+          }
+          if (remCents > 0) {
+            errors.tendered = 'Exact change is not available. Please enter another payment amount.'
+          }
+        }
+      }
+    }
     setPaymentFormErrors(errors)
     if (Object.keys(errors).length) return
     const amt = Number(paymentAmount)
@@ -837,6 +862,8 @@ function MainApp() {
       const payment = {
         order_id: Number(paymentOrderId),
         amount: paymentAmount,
+        amount_tendered: paymentMethod === 'Cash' ? (paymentAmountTendered || paymentAmount) : null,
+        has_1_peso_coins: paymentHasOnePeso,
         payment_method: paymentMethod,
         reference_number: ['GCash', 'Maya'].includes(paymentMethod) ? paymentReference.trim() : null,
         other_method: paymentMethod === 'Other' ? paymentOtherMethod.trim() : null,
@@ -863,6 +890,7 @@ function MainApp() {
       setIsRecordPaymentModalOpen(false)
       setPaymentOrderId('')
       setPaymentAmount('')
+      setPaymentAmountTendered('')
       setPaymentReference('')
       setPaymentOtherMethod('')
       setPaymentOrderBalance(null)
@@ -871,6 +899,7 @@ function MainApp() {
     } catch (err) {
       const message = err.response?.data?.message || err.message || 'Failed to record payment on server.'
       if (/remaining balance|overpayment/i.test(message)) setPaymentFormErrors(current => ({ ...current, amount: message }))
+      if (err.response?.data?.errors?.amount_tendered) setPaymentFormErrors(current => ({ ...current, tendered: err.response.data.errors.amount_tendered[0] }))
       if (err.response?.data?.errors?.reference_number) setPaymentFormErrors(current => ({ ...current, reference: err.response.data.errors.reference_number[0] }))
       if (err.response?.data?.errors?.other_method) setPaymentFormErrors(current => ({ ...current, otherMethod: err.response.data.errors.other_method[0] }))
       showToast(message, 'error')
@@ -883,6 +912,7 @@ function MainApp() {
   const handlePaymentOrderSelect = async (id) => {
     setPaymentOrderId(id)
     setPaymentAmount('')
+    setPaymentAmountTendered('')
     setPaymentOrderBalance(null)
     setPaymentFormErrors({})
     if (!id) return
@@ -896,6 +926,7 @@ function MainApp() {
       }
       setPaymentOrderBalance(balance)
       setPaymentAmount(balance.toFixed(2))
+      setPaymentAmountTendered(balance.toFixed(2))
     } catch (err) {
       setPaymentFormErrors({ order: err.response?.data?.message || 'Unable to retrieve the latest order balance.' })
     } finally {
@@ -1003,7 +1034,7 @@ function MainApp() {
   }
 
   // Shared props for sub-pages
-  const sharedProps = { orders, customers, services, orderPricingLimits, activeServices, standardKgService, specialServices, allPayments, filteredOrders, filteredPayments, metrics, pipelineCounts, latestHumidity, humidityHistory, loading, apiOnline, dashboardData, telemetryRefreshing, orderSaving, paymentSaving, customerAdding, markingPaidIds, PIPELINE_STAGES, ORDER_STATUS_STEPS, orderSearch, setOrderSearch, orderStatusFilter, setOrderStatusFilter, orderPaymentFilter, setOrderPaymentFilter, paymentSearch, setPaymentSearch, paymentMethodFilter, setPaymentMethodFilter, customerSearch, setCustomerSearch, customerStatusFilter, setCustomerStatusFilter, editingCustomer, setEditingCustomer, editCustForm, setEditCustForm, archivingCustomer, setArchivingCustomer, restoringCustomer, setRestoringCustomer, customerSaving, customerAccountActionBusy, isNewOrderModalOpen, setIsNewOrderModalOpen, isRecordPaymentModalOpen, setIsRecordPaymentModalOpen, isAddCustomerModalOpen, setIsAddCustomerModalOpen, selectedOrderDetails, setSelectedOrderDetails, orderDetailsLoadingId, openOrderDetails, newOrderCustomer, setNewOrderCustomer, newOrderFulfillment, setNewOrderFulfillment, newOrderNotes, setNewOrderNotes, newOrderItems, setNewOrderItems, newOrderCharges, setNewOrderCharges, newOrderChargesReason, setNewOrderChargesReason, newOrderDiscount, setNewOrderDiscount, newOrderTotals, orderValidation, orderValidationVisible, paymentOrderId, setPaymentOrderId, paymentAmount, setPaymentAmount, paymentMethod, setPaymentMethod, paymentReference, setPaymentReference, newCustFirstName, setNewCustFirstName, newCustLastName, setNewCustLastName, newCustPhone, setNewCustPhone, newCustEmail, setNewCustEmail, newCustAddress, setNewCustAddress, newCustomerErrors, setNewCustomerErrors, handleUpdateOrderStatus, handleCreateOrder, handleRecordPayment, handleAddCustomer, handleRefreshTelemetry, handleSimulateESP32Payload, handleMarkAsPaid, handleUpdateCustomer, handleArchiveCustomer, handleRestoreCustomer, handleToggleService, handleUpdateServicePrice, resetNewOrderForm, handleOpenNewOrder, fetchAllData, navigateToOrdersWithStatus, showToast, renderStatusBadge, renderPaymentBadge, orderItemsOf, formatCurrency }
+  const sharedProps = { orders, customers, services, orderPricingLimits, activeServices, standardKgService, specialServices, allPayments, filteredOrders, filteredPayments, metrics, pipelineCounts, latestHumidity, humidityHistory, loading, apiOnline, dashboardData, telemetryRefreshing, orderSaving, paymentSaving, customerAdding, markingPaidIds, PIPELINE_STAGES, ORDER_STATUS_STEPS, orderSearch, setOrderSearch, orderStatusFilter, setOrderStatusFilter, orderPaymentFilter, setOrderPaymentFilter, paymentSearch, setPaymentSearch, paymentMethodFilter, setPaymentMethodFilter, customerSearch, setCustomerSearch, customerStatusFilter, setCustomerStatusFilter, editingCustomer, setEditingCustomer, editCustForm, setEditCustForm, archivingCustomer, setArchivingCustomer, restoringCustomer, setRestoringCustomer, customerSaving, customerAccountActionBusy, isNewOrderModalOpen, setIsNewOrderModalOpen, isRecordPaymentModalOpen, setIsRecordPaymentModalOpen, isAddCustomerModalOpen, setIsAddCustomerModalOpen, selectedOrderDetails, setSelectedOrderDetails, orderDetailsLoadingId, openOrderDetails, newOrderCustomer, setNewOrderCustomer, newOrderFulfillment, setNewOrderFulfillment, newOrderNotes, setNewOrderNotes, newOrderItems, setNewOrderItems, newOrderCharges, setNewOrderCharges, newOrderChargesReason, setNewOrderChargesReason, newOrderDiscount, setNewOrderDiscount, newOrderTotals, orderValidation, orderValidationVisible, paymentOrderId, setPaymentOrderId, paymentAmount, setPaymentAmount, paymentAmountTendered, setPaymentAmountTendered, paymentHasOnePeso, setPaymentHasOnePeso, paymentMethod, setPaymentMethod, paymentReference, setPaymentReference, newCustFirstName, setNewCustFirstName, newCustLastName, setNewCustLastName, newCustPhone, setNewCustPhone, newCustEmail, setNewCustEmail, newCustAddress, setNewCustAddress, newCustomerErrors, setNewCustomerErrors, handleUpdateOrderStatus, handleCreateOrder, handleRecordPayment, handleAddCustomer, handleRefreshTelemetry, handleSimulateESP32Payload, handleMarkAsPaid, handleUpdateCustomer, handleArchiveCustomer, handleRestoreCustomer, handleToggleService, handleUpdateServicePrice, resetNewOrderForm, handleOpenNewOrder, fetchAllData, navigateToOrdersWithStatus, showToast, renderStatusBadge, renderPaymentBadge, orderItemsOf, formatCurrency }
   sharedProps.handlePaymentOrderSelect = handlePaymentOrderSelect
 
   return (
@@ -2702,8 +2733,68 @@ function OrderModals(p) {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-navy mb-1">Payment Method</label>
-                <select value={p.paymentMethod} onChange={e => { p.setPaymentMethod(e.target.value); p.setPaymentFormErrors({ ...p.paymentFormErrors, reference: '', otherMethod: '' }) }} className="w-full px-3 py-2 rounded-xl bg-brand-tint border border-line text-navy focus:outline-none focus:border-brand-light">{PAYMENT_METHODS.map(m => <option key={m.value} value={m.value}>{m.value}</option>)}</select>
+                <select value={p.paymentMethod} onChange={e => { p.setPaymentMethod(e.target.value); p.setPaymentFormErrors({ ...p.paymentFormErrors, reference: '', otherMethod: '', tendered: '' }) }} className="w-full px-3 py-2 rounded-xl bg-brand-tint border border-line text-navy focus:outline-none focus:border-brand-light">{PAYMENT_METHODS.map(m => <option key={m.value} value={m.value}>{m.value}</option>)}</select>
               </div>
+              {p.paymentMethod === 'Cash' && (() => {
+                const amtDue = Number(p.paymentAmount) || 0
+                const tendered = p.paymentAmountTendered === '' ? amtDue : (Number(p.paymentAmountTendered) || 0)
+                const isInsufficient = tendered < amtDue
+                const changeAmt = tendered >= amtDue ? tendered - amtDue : 0
+                let canProvideChange = true
+                const breakdown = {}
+                if (changeAmt > 0.001) {
+                  const denoms = p.paymentHasOnePeso ? [1000, 500, 200, 100, 50, 20, 10, 5, 1] : [1000, 500, 200, 100, 50, 20, 10, 5]
+                  let rem = Math.round(changeAmt * 100)
+                  for (const d of denoms) {
+                    const dCents = d * 100
+                    if (rem >= dCents) {
+                      const count = Math.floor(rem / dCents)
+                      breakdown[d] = count
+                      rem -= count * dCents
+                    }
+                  }
+                  if (rem > 0) canProvideChange = false
+                }
+                const isValid = !isInsufficient && canProvideChange
+                return (
+                  <div className="space-y-3 p-3 bg-brand-tint/60 rounded-xl border border-line">
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-semibold text-navy">Cash Received (₱)</label>
+                        <div className="flex gap-1.5">
+                          <button type="button" onClick={() => p.setPaymentAmountTendered(p.paymentAmount)} className="px-2 py-0.5 text-[10px] rounded bg-white border border-line text-navy font-semibold hover:bg-brand-tint">Exact</button>
+                          {[100, 500, 1000].map(val => (
+                            <button key={val} type="button" onClick={() => p.setPaymentAmountTendered(String(val))} className="px-2 py-0.5 text-[10px] rounded bg-white border border-line text-navy font-semibold hover:bg-brand-tint">₱{val}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <input type="text" inputMode="decimal" value={p.paymentAmountTendered} onChange={e => { const val = e.target.value; if (/^\d*(?:\.\d{0,2})?$/.test(val)) { p.setPaymentAmountTendered(val); p.setPaymentFormErrors({ ...p.paymentFormErrors, tendered: '' }) } }} placeholder={p.paymentAmount || '0.00'} className="w-full px-3 py-2 rounded-xl bg-white border border-line text-navy focus:outline-none focus:border-brand-light font-mono font-bold" />
+                      {p.paymentFormErrors.tendered && <p className="mt-1 text-xs text-rose-600">{p.paymentFormErrors.tendered}</p>}
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-navy select-none">
+                      <input type="checkbox" checked={p.paymentHasOnePeso} onChange={e => p.setPaymentHasOnePeso(e.target.checked)} className="rounded border-line text-navy focus:ring-0" />
+                      <span>₱1 coins available in drawer</span>
+                    </label>
+                    <div className={`p-2.5 rounded-lg border text-xs ${isValid ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+                      <div className="flex justify-between font-bold">
+                        <span>{isInsufficient ? 'Short By:' : 'Change (Sukli):'}</span>
+                        <span className="text-sm font-mono">{isInsufficient ? `-₱${(amtDue - tendered).toFixed(2)}` : `₱${changeAmt.toFixed(2)}`}</span>
+                      </div>
+                      <p className="mt-1 font-medium">
+                        {isInsufficient ? 'Payment amount is insufficient.' : (!canProvideChange ? 'Exact change is not available. Please enter another payment amount.' : `Payment accepted. Change: ₱${changeAmt.toFixed(2)}`)}
+                      </p>
+                      {Object.keys(breakdown).length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-emerald-200 flex flex-wrap gap-1">
+                          <span className="text-[10px] font-bold text-navy mr-1">Breakdown:</span>
+                          {Object.entries(breakdown).map(([denom, count]) => (
+                            <span key={denom} className="px-1.5 py-0.5 rounded bg-white border border-emerald-300 text-[10px] font-bold text-navy">{count} × ₱{denom}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
               <div>
                 {p.paymentMethod === 'Other' && <div><label className="block text-xs font-semibold text-navy mb-1">Specify Payment Method *</label><input type="text" maxLength={100} value={p.paymentOtherMethod} onChange={e => { p.setPaymentOtherMethod(e.target.value); p.setPaymentFormErrors({ ...p.paymentFormErrors, otherMethod: '' }) }} placeholder="e.g. Bank transfer" className="w-full px-3 py-2 rounded-xl bg-brand-tint border border-line text-navy focus:outline-none focus:border-brand-light" />{p.paymentFormErrors.otherMethod && <p className="mt-1 text-xs text-rose-600">{p.paymentFormErrors.otherMethod}</p>}</div>}
                 <label className="block text-xs font-semibold text-navy mb-1">Reference / Notes{['GCash', 'Maya'].includes(p.paymentMethod) ? ' *' : ' (optional)'}</label>
@@ -2712,7 +2803,7 @@ function OrderModals(p) {
               </div>
               <div className="pt-3 flex justify-end gap-3 border-t border-line">
                 <button type="button" onClick={() => p.setIsRecordPaymentModalOpen(false)} className="px-4 py-2 rounded-xl bg-brand-tint text-navy font-semibold">Cancel</button>
-                <button type="submit" disabled={p.paymentSaving || p.paymentOrderLoading || !p.paymentOrderId} className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-hover text-white font-bold shadow-card disabled:opacity-50">{p.paymentSaving && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}{p.paymentSaving ? 'Saving…' : 'Save Payment'}</button>
+                <button type="submit" disabled={p.paymentSaving || p.paymentOrderLoading || !p.paymentOrderId || (p.paymentMethod === 'Cash' && p.paymentAmountTendered !== '' && Number(p.paymentAmountTendered) < Number(p.paymentAmount))} className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-hover text-white font-bold shadow-card disabled:opacity-50">{p.paymentSaving && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}{p.paymentSaving ? 'Saving…' : 'Save Payment'}</button>
               </div>
             </form>
           </div>
